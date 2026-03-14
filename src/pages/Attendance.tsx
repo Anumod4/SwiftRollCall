@@ -14,7 +14,7 @@ import {
   subMonths,
   addMonths
 } from 'date-fns';
-import { ChevronLeft, ChevronRight, Check, X, Minus, CalendarDays, CalendarRange, Filter } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, X, Minus, CalendarDays, CalendarRange, Filter, RotateCcw } from 'lucide-react';
 import clsx from 'clsx';
 import { Class } from '../types';
 
@@ -197,6 +197,10 @@ export function Attendance() {
     ? students.filter(s => s.classId === Number(selectedClassId))
     : students;
 
+  const handleResetFilters = () => {
+    setSelectedClassId('');
+  };
+
   const getStatusIcon = (status: string) => {
     const size = 12;
     switch (status) {
@@ -236,6 +240,17 @@ export function Attendance() {
               ))}
             </select>
           </div>
+
+          {/* Reset Filters */}
+          {selectedClassId !== '' && (
+            <button
+              onClick={handleResetFilters}
+              className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-rose-600 bg-rose-50 dark:bg-rose-900/20 rounded-xl hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-colors border border-rose-100 dark:border-rose-800"
+            >
+              <RotateCcw size={14} />
+              Reset Filters
+            </button>
+          )}
 
           {/* Auto Notify Toggle */}
           <label className="flex items-center gap-2 cursor-pointer bg-white dark:bg-zinc-800 px-3 py-1.5 rounded-xl shadow-sm border border-zinc-100 dark:border-zinc-700">
