@@ -18,8 +18,8 @@ app.use(express.json());
 
 // Initialize Database
 const db = createClient({
-  url: 'libsql://swiftrollcall-swiftrollcall.aws-ap-south-1.turso.io',
-  authToken: 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3NzM0NjM4NTQsImlkIjoiMDE5Y2VhYWQtYzAwMS03OGE3LTkxY2UtYzkwNjExMDQ4OGM0IiwicmlkIjoiNTgzMjUxZTgtZjA2Zi00NzFkLWFiYjYtY2YwZWFlYmY1NWViIn0.dxGtanWjlhAO2f6V6iAa7mq_r16QA1OUYojcs0lq4FxIX6M13nqun466CyNTvMaSH92xFTcVqtlDgG5iiFO9Dw'
+  url: 'libsql://swiftrollcall-anumodk.aws-ap-northeast-1.turso.io',
+  authToken: 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3NzM0NzQ0NjgsImlkIjoiMDE5Y2ViNTAtYTcwMS03ZWYwLTg5ZWUtZjMzMmNjODBmMTE3IiwicmlkIjoiN2NkMjVlMzQtNTE1My00ZDk3LWFmYzgtNzU5NjVmNjk1YjFhIn0.pCSecADtc9o6FDv33Auk_GLgVw3rIF5t7TtEpLsFQiE0Y4Yws6iRhbiQEkap19PnWXrPd2NvTggEZkPUFrg-Aw'
 });
 
 // Auth Middleware
@@ -123,14 +123,16 @@ async function setupDatabase() {
       darkMode INTEGER DEFAULT 0,
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+  `);
 
-    // Migrations
-    try {
-      await db.execute("ALTER TABLE users ADD COLUMN darkMode INTEGER DEFAULT 0");
-    } catch (e) {
-      // Column might already exist
-    }
+  // Migrations
+  try {
+    await db.execute("ALTER TABLE users ADD COLUMN darkMode INTEGER DEFAULT 0");
+  } catch (e) {
+    // Column might already exist
+  }
 
+  await db.executeMultiple(`
     CREATE TABLE IF NOT EXISTS classes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL UNIQUE,
@@ -177,11 +179,14 @@ async function setupDatabase() {
     
     INSERT OR IGNORE INTO settings (key, value) VALUES ('receiptTemplate', 'modern');
     INSERT OR IGNORE INTO settings (key, value) VALUES ('whatsappProvider', 'meta');
-  `);
 
-  try {
-    await db.execute('ALTER TABLE users ADD COLUMN darkMode INTEGER DEFAULT 0');
-  } catch (e) {}
+    -- Indices for performance
+    CREATE INDEX IF NOT EXISTS idx_students_classId ON students(classId);
+    CREATE INDEX IF NOT EXISTS idx_attendance_studentId ON attendance(studentId);
+    CREATE INDEX IF NOT EXISTS idx_attendance_date ON attendance(date);
+    CREATE INDEX IF NOT EXISTS idx_payments_studentId ON payments(studentId);
+    CREATE INDEX IF NOT EXISTS idx_payments_date ON payments(date);
+  `);
 
   // Migration: Add classId to students if it doesn't exist
   try {
@@ -598,8 +603,96 @@ app.post('/api/payments', async (req, res) => {
   }
 });
 
+// Dashboard Stats
+app.get('/api/dashboard/stats', authenticateToken, async (req, res) => {
+  try {
+    const totalStudentsResult = await db.execute('SELECT COUNT(*) as count FROM students');
+    const totalClassesResult = await db.execute('SELECT COUNT(*) as count FROM classes');
+    
+    // Monthly revenue (current month)
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = (now.getMonth() + 1).toString().padStart(2, '0');
+    const currentMonthStr = `${currentYear}-${currentMonth}`;
+
+    const monthlyRevenueResult = await db.execute({
+      sql: "SELECT SUM(amount) as total FROM payments WHERE date LIKE ?",
+      args: [`${currentMonthStr}%`]
+    });
+
+    // Attendance rate (last 30 days)
+    const attendanceStatsResult = await db.execute(`
+      SELECT 
+        COUNT(*) as total,
+        SUM(CASE WHEN status = 'Present' THEN 1 ELSE 0 END) as present
+      FROM attendance
+      WHERE date >= date('now', '-30 days')
+    `);
+
+    // Recent payments with student names
+    const recentPaymentsResult = await db.execute(`
+      SELECT p.*, s.name as studentName 
+      FROM payments p 
+      JOIN students s ON p.studentId = s.id 
+      ORDER BY p.date DESC 
+      LIMIT 5
+    `);
+
+    // Revenue by month (last 6 months)
+    const revenueByMonthResult = await db.execute(`
+      SELECT substr(date, 1, 7) as month, SUM(amount) as amount 
+      FROM payments 
+      GROUP BY month 
+      ORDER BY month DESC 
+      LIMIT 6
+    `);
+
+    // Attendance by day (last 7 days)
+    const attendanceByDayResult = await db.execute(`
+      SELECT 
+        date,
+        (SUM(CASE WHEN status = 'Present' THEN 1 ELSE 0 END) * 100.0 / COUNT(*)) as rate
+      FROM attendance 
+      WHERE date >= date('now', '-7 days')
+      GROUP BY date 
+      ORDER BY date ASC
+    `);
+
+    // Student growth (last 6 months)
+    const studentGrowthResult = await db.execute(`
+      SELECT substr(createdAt, 1, 7) as month, COUNT(*) as count 
+      FROM students 
+      GROUP BY month 
+      ORDER BY month DESC 
+      LIMIT 6
+    `);
+
+    const totalStudents = Number(totalStudentsResult.rows[0]?.count || 0);
+    const totalClasses = Number(totalClassesResult.rows[0]?.count || 0);
+    const monthlyRevenue = Number(monthlyRevenueResult.rows[0]?.total || 0);
+    
+    const attendTotal = Number(attendanceStatsResult.rows[0]?.total || 0);
+    const attendPresent = Number(attendanceStatsResult.rows[0]?.present || 0);
+    const attendanceRate = attendTotal > 0 ? (attendPresent / attendTotal) * 100 : 0;
+
+    res.json({
+      totalStudents,
+      totalClasses,
+      monthlyRevenue,
+      attendanceRate,
+      recentPayments: recentPaymentsResult.rows,
+      revenueByMonth: revenueByMonthResult.rows.reverse(),
+      attendanceByDay: attendanceByDayResult.rows,
+      studentGrowth: studentGrowthResult.rows.reverse()
+    });
+  } catch (error) {
+    console.error('Dashboard Stats Error:', error);
+    res.status(500).json({ error: 'Failed to get dashboard stats' });
+  }
+});
+
 // Notifications
-app.post('/api/notifications/remind', async (req, res) => {
+app.post('/api/notifications/remind', authenticateToken, async (req, res) => {
   const { studentId, dueDate, amount } = req.body;
   try {
     const studentResult = await db.execute({

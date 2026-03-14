@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Users, Calendar, DollarSign, Settings, LogOut, BookOpen } from 'lucide-react';
+import { Users, Calendar, DollarSign, Settings, LogOut, BookOpen, Activity } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -15,7 +15,8 @@ export function Layout() {
   };
 
   const navItems = [
-    { name: 'Students', path: '/', icon: Users },
+    { name: 'Dashboard', path: '/', icon: Activity },
+    { name: 'Students', path: '/students', icon: Users },
     { name: 'Classes', path: '/classes', icon: BookOpen },
     { name: 'Attendance', path: '/attendance', icon: Calendar },
     { name: 'Fee Ledger', path: '/fees', icon: DollarSign },

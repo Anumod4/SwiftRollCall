@@ -60,3 +60,13 @@ export interface AppSettings {
   rocketSenderApiKey?: string;
   rocketSenderDeviceId?: string;
 }
+export interface DashboardStats {
+  totalStudents: number;
+  totalClasses: number;
+  monthlyRevenue: number;
+  attendanceRate: number;
+  recentPayments: (Payment & { studentName: string })[];
+  revenueByMonth: { month: string; amount: number }[];
+  attendanceByDay: { date: string; rate: number }[];
+  studentGrowth: { month: string; count: number }[];
+}

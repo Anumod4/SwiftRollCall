@@ -1,4 +1,4 @@
-import { Student, Attendance, Payment, AppSettings, Class, User } from '../types';
+import { Student, Attendance, Payment, AppSettings, Class, User, DashboardStats } from '../types';
 
 const getHeaders = () => {
   const token = localStorage.getItem('token');
@@ -163,6 +163,12 @@ export const api = {
       headers: getHeaders(),
       body: JSON.stringify({ studentId, dueDate, amount }),
     });
+    return handleResponse(res);
+  },
+  
+  // Dashboard
+  getDashboardStats: async (): Promise<DashboardStats> => {
+    const res = await fetch('/api/dashboard/stats', { headers: getHeaders() });
     return handleResponse(res);
   },
 };
