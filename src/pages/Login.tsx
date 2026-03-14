@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { LogIn, Eye, EyeOff } from 'lucide-react';
 
 export function Login() {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -19,7 +19,7 @@ export function Login() {
     setLoading(true);
 
     try {
-      const data = await api.login({ email, password });
+      const data = await api.login({ username, password });
       login(data.token, data.user);
       navigate('/');
     } catch (err: any) {
@@ -57,15 +57,16 @@ export function Login() {
 
             <div>
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                Email address
+                Username
               </label>
               <div className="mt-1">
                 <input
-                  type="email"
+                  type="text"
                   required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   className="appearance-none block w-full px-4 py-3 border border-zinc-300 dark:border-zinc-600 rounded-xl shadow-sm placeholder-zinc-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white transition-all"
+                  placeholder="Enter your username"
                 />
               </div>
             </div>

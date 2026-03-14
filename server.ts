@@ -117,7 +117,8 @@ async function setupDatabase() {
   await db.executeMultiple(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      email TEXT UNIQUE NOT NULL,
+      email TEXT UNIQUE,
+      username TEXT UNIQUE NOT NULL,
       password TEXT NOT NULL,
       name TEXT NOT NULL,
       darkMode INTEGER DEFAULT 0,
@@ -128,9 +129,11 @@ async function setupDatabase() {
   // Migrations
   try {
     await db.execute("ALTER TABLE users ADD COLUMN darkMode INTEGER DEFAULT 0");
-  } catch (e) {
-    // Column might already exist
-  }
+  } catch (e) {}
+
+  try {
+    await db.execute("ALTER TABLE users ADD COLUMN username TEXT UNIQUE");
+  } catch (e) {}
 
   await db.executeMultiple(`
     CREATE TABLE IF NOT EXISTS classes (
@@ -207,19 +210,20 @@ async function setupDatabase() {
 
 // Auth
 app.post('/api/auth/signup', async (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, username, email, password } = req.body;
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
     const result = await db.execute({
-      sql: 'INSERT INTO users (name, email, password) VALUES (?, ?, ?)',
-      args: [name, email, hashedPassword]
+      sql: 'INSERT INTO users (name, username, email, password) VALUES (?, ?, ?, ?)',
+      args: [name, username, email || null, hashedPassword]
     });
     
-    const token = jwt.sign({ id: Number(result.lastInsertRowid), email }, JWT_SECRET, { expiresIn: '7d' });
-    res.json({ token, user: { id: Number(result.lastInsertRowid), name, email, darkMode: false } });
+    const token = jwt.sign({ id: Number(result.lastInsertRowid), username }, JWT_SECRET, { expiresIn: '7d' });
+    res.json({ token, user: { id: Number(result.lastInsertRowid), name, username, email, darkMode: false } });
   } catch (error: any) {
     if (error.message?.includes('UNIQUE constraint failed')) {
-      return res.status(400).json({ error: 'Email already exists' });
+      if (error.message.includes('username')) return res.status(400).json({ error: 'Username already exists' });
+      if (error.message.includes('email')) return res.status(400).json({ error: 'Email already exists' });
     }
     console.error(error);
     res.status(500).json({ error: 'Failed to create user' });
@@ -227,11 +231,11 @@ app.post('/api/auth/signup', async (req, res) => {
 });
 
 app.post('/api/auth/login', async (req, res) => {
-  const { email, password } = req.body;
+  const { username, password } = req.body;
   try {
     const result = await db.execute({
-      sql: 'SELECT * FROM users WHERE email = ?',
-      args: [email]
+      sql: 'SELECT * FROM users WHERE username = ?',
+      args: [username]
     });
     
     const user = result.rows[0];
@@ -244,8 +248,8 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
-    res.json({ token, user: { id: user.id, name: user.name, email: user.email, darkMode: Boolean(user.darkMode) } });
+    const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
+    res.json({ token, user: { id: user.id, name: user.name, username: user.username, email: user.email, darkMode: Boolean(user.darkMode) } });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to login' });
@@ -255,7 +259,7 @@ app.post('/api/auth/login', async (req, res) => {
 app.get('/api/auth/me', authenticateToken, async (req: any, res: any) => {
   try {
     const result = await db.execute({
-      sql: 'SELECT id, name, email, darkMode FROM users WHERE id = ?',
+      sql: 'SELECT id, name, username, email, darkMode FROM users WHERE id = ?',
       args: [req.user.id]
     });
     

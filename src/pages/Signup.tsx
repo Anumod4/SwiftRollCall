@@ -6,6 +6,7 @@ import { UserPlus, Eye, EyeOff } from 'lucide-react';
 
 export function Signup() {
   const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -19,6 +20,8 @@ export function Signup() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
+
     if (password !== confirmPassword) {
       setError('Passwords do not match');
       setLoading(false);
@@ -26,7 +29,7 @@ export function Signup() {
     }
 
     try {
-      const data = await api.signup({ name, email, password });
+      const data = await api.signup({ name, username, email, password });
       login(data.token, data.user);
       navigate('/');
     } catch (err: any) {
@@ -73,21 +76,38 @@ export function Signup() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="appearance-none block w-full px-4 py-3 border border-zinc-300 dark:border-zinc-600 rounded-xl shadow-sm placeholder-zinc-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white transition-all"
+                  placeholder="e.g. John Doe"
                 />
               </div>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                Email address
+                Username
+              </label>
+              <div className="mt-1">
+                <input
+                  type="text"
+                  required
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="appearance-none block w-full px-4 py-3 border border-zinc-300 dark:border-zinc-600 rounded-xl shadow-sm placeholder-zinc-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white transition-all"
+                  placeholder="Choose a unique username"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                Email address (Optional)
               </label>
               <div className="mt-1">
                 <input
                   type="email"
-                  required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="appearance-none block w-full px-4 py-3 border border-zinc-300 dark:border-zinc-600 rounded-xl shadow-sm placeholder-zinc-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white transition-all"
+                  placeholder="johndoe@example.com"
                 />
               </div>
             </div>

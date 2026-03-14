@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { Student, Class } from '../types';
-import { Plus, Edit2, Trash2, Phone, User, BookOpen } from 'lucide-react';
+import { Plus, Edit2, Trash2, Phone, User, BookOpen, Filter, RotateCcw } from 'lucide-react';
 
 export function Students() {
   const [students, setStudents] = useState<Student[]>([]);
@@ -105,6 +105,12 @@ export function Students() {
 
   const allSubjects = Array.from(new Set(students.flatMap(s => s.subjects.split(',').map(sub => sub.trim()))));
 
+  const handleResetFilters = () => {
+    setSearchTerm('');
+    setSelectedClassId('all');
+    setSelectedSubject('all');
+  };
+
   const filteredStudents = students.filter(student => {
     const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesClass = selectedClassId === 'all' || student.classId === parseInt(selectedClassId);
@@ -138,7 +144,7 @@ export function Students() {
       </div>
 
       {/* Filters & Search */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white dark:bg-zinc-800 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-700 shadow-sm transition-colors">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-white dark:bg-zinc-800 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-700 shadow-sm transition-colors">
         <div>
           <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1 px-1">Search Name</label>
           <input
@@ -174,6 +180,15 @@ export function Students() {
               <option key={sub} value={sub}>{sub}</option>
             ))}
           </select>
+        </div>
+        <div className="flex items-end">
+          <button
+            onClick={handleResetFilters}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-rose-600 bg-rose-50 dark:bg-rose-900/20 rounded-xl hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-colors border border-rose-100 dark:border-rose-800 h-[42px] w-full justify-center"
+          >
+            <RotateCcw size={14} />
+            Reset Filters
+          </button>
         </div>
       </div>
 

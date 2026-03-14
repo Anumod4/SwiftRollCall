@@ -18,7 +18,7 @@ const handleResponse = async (res: Response) => {
 
 export const api = {
   // Auth
-  login: async (credentials: any) => {
+  login: async (credentials: { username: string; password: string }) => {
     const res = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -26,7 +26,7 @@ export const api = {
     });
     return handleResponse(res);
   },
-  signup: async (userData: any) => {
+  signup: async (userData: { name: string; username: string; email?: string; password: string }) => {
     const res = await fetch('/api/auth/signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
