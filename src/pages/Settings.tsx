@@ -22,6 +22,7 @@ export function Settings() {
   });
   const [savedTemplates, setSavedTemplates] = useState<ReceiptTemplateType[]>([]);
   const [templateName, setTemplateName] = useState('');
+  const [editingTemplateId, setEditingTemplateId] = useState<number | null>(null);
 
   useEffect(() => {
     loadSettings();
@@ -103,9 +104,30 @@ export function Settings() {
         config: customConfig, 
         createdAt: new Date().toISOString() 
       }]);
-      setTemplateName('');
+      setEditingTemplateId(id);
     } catch (error) {
       console.error('Failed to create template', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUpdateTemplate = async () => {
+    if (!editingTemplateId || !templateName.trim()) return;
+    
+    setSaving(true);
+    try {
+      await api.updateReceiptTemplate(editingTemplateId, { 
+        name: templateName, 
+        config: customConfig 
+      });
+      setSavedTemplates(savedTemplates.map(t => 
+        t.id === editingTemplateId 
+          ? { ...t, name: templateName, config: customConfig } 
+          : t
+      ));
+    } catch (error) {
+      console.error('Failed to update template', error);
     } finally {
       setSaving(false);
     }
@@ -117,6 +139,9 @@ export function Settings() {
     try {
       await api.deleteReceiptTemplate(id);
       setSavedTemplates(savedTemplates.filter(t => t.id !== id));
+      if (editingTemplateId === id) {
+        handleNewTemplate();
+      }
     } catch (error) {
       console.error('Failed to delete template', error);
     }
@@ -124,6 +149,21 @@ export function Settings() {
 
   const handleLoadTemplate = (template: ReceiptTemplateType) => {
     setCustomConfig(template.config);
+    setTemplateName(template.name);
+    setEditingTemplateId(template.id);
+  };
+
+  const handleNewTemplate = () => {
+    setEditingTemplateId(null);
+    setTemplateName('');
+    setCustomConfig({
+      baseLayout: 'modern',
+      logoUrl: '',
+      headerText: 'RECEIPT',
+      businessName: 'SwiftRollCall Services',
+      themeColor: '#4f46e5',
+      footerText: 'Thank you for your business!'
+    });
   };
 
 
@@ -214,70 +254,27 @@ export function Settings() {
         </div>
       </div>
 
-      {/* Receipt Templates Section */}
+      {/* Receipt Customization Section */}
       <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-700 overflow-hidden transition-colors">
-        <div className="p-6 border-b border-zinc-100 dark:border-zinc-700">
-          <h2 className="text-xl font-semibold text-zinc-900 dark:text-white">Receipt Templates</h2>
-          <p className="text-zinc-500 dark:text-zinc-400 mt-1">
-            Choose the design for the receipts you download and share with students.
-          </p>
-        </div>
-
-        <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {(['classic', 'modern', 'minimalist', 'custom'] as const).map((t) => (
-            <div 
-              key={t}
-              onClick={() => handleTemplateSelect(t)}
-              className={clsx(
-                "cursor-pointer rounded-2xl border-2 transition-all overflow-hidden relative group flex flex-col",
-                settings?.receiptTemplate === t 
-                  ? "border-indigo-600 ring-4 ring-indigo-50 dark:ring-indigo-900/20" 
-                  : "border-zinc-200 dark:border-zinc-700 hover:border-indigo-300 dark:hover:border-indigo-500"
-              )}
-            >
-              {settings?.receiptTemplate === t && (
-                <div className="absolute top-3 right-3 bg-indigo-600 text-white p-1 rounded-full z-10">
-                  <Check size={16} />
-                </div>
-              )}
-              <div className="bg-zinc-50 dark:bg-zinc-900/50 p-6 h-48 flex items-center justify-center flex-1">
-                {t === 'custom' ? (
-                  <div className="w-full max-w-[200px] bg-white dark:bg-zinc-800 p-4 shadow-sm border-2 border-zinc-200 dark:border-zinc-700 border-dashed flex flex-col items-center justify-center text-zinc-400 h-full rounded-lg">
-                    <SettingsIcon size={32} className="mb-2" />
-                    <span className="text-xs font-medium">Custom Layout</span>
-                  </div>
-                ) : (
-                  <div className="w-full max-w-[200px] bg-white dark:bg-zinc-800 p-4 shadow-sm border border-zinc-200 dark:border-zinc-700 rounded-lg transform scale-75 group-hover:scale-90 transition-transform">
-                     <div className="h-2 w-1/2 bg-zinc-200 dark:bg-zinc-700 rounded mb-2"></div>
-                     <div className="h-10 w-full bg-zinc-100 dark:bg-zinc-700/50 rounded mb-2"></div>
-                     <div className="space-y-1">
-                       <div className="h-2 w-3/4 bg-zinc-100 dark:bg-zinc-700/50 rounded"></div>
-                       <div className="h-2 w-full bg-zinc-100 dark:bg-zinc-700/50 rounded"></div>
-                     </div>
-                  </div>
-                )}
-              </div>
-              <div className="p-4 bg-white dark:bg-zinc-800 border-t border-zinc-100 dark:border-zinc-700 flex justify-between items-center transition-colors">
-                <div>
-                  <h3 className="font-semibold text-zinc-900 dark:text-white capitalize">{t}</h3>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                    {t === 'classic' && 'Traditional serif design.'}
-                    {t === 'modern' && 'Clean with color accents.'}
-                    {t === 'minimalist' && 'Simple monospace layout.'}
-                    {t === 'custom' && 'Your personalized design.'}
-                  </p>
-                </div>
-                {t === 'custom' && (
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); setIsEditingCustom(true); }}
-                    className="p-2 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
-                  >
-                    <Edit2 size={18} />
-                  </button>
-                )}
-              </div>
+        <div className="p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg">
+              <FileText size={20} />
             </div>
-          ))}
+            <div>
+              <h2 className="text-xl font-semibold text-zinc-900 dark:text-white">Receipt Customization</h2>
+              <p className="text-zinc-500 dark:text-zinc-400 mt-1">
+                Manage your layout, logos, and business details on receipts.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setIsEditingCustom(true)}
+            className="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all font-bold shadow-md shadow-indigo-200 dark:shadow-none flex items-center justify-center gap-2"
+          >
+            <SettingsIcon size={18} />
+            Customize Layouts
+          </button>
         </div>
       </div>
 
@@ -398,8 +395,16 @@ export function Settings() {
               <div className="w-full md:w-1/3 border-r border-zinc-100 dark:border-zinc-700 p-6 overflow-y-auto bg-zinc-50 dark:bg-zinc-900/50">
                 <div className="space-y-6">
                   {/* Save Template Section */}
-                  <div className="bg-white dark:bg-zinc-800 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700">
-                    <h3 className="text-sm font-bold text-zinc-900 dark:text-white mb-3">Save as Named Template</h3>
+                  <div className="bg-white dark:bg-zinc-800 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 shadow-sm">
+                    <div className="flex justify-between items-center mb-3">
+                      <h3 className="text-sm font-bold text-zinc-900 dark:text-white">Layout Management</h3>
+                      <button
+                        onClick={handleNewTemplate}
+                        className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 px-2 py-1 rounded-md hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-all border border-indigo-100 dark:border-indigo-800"
+                      >
+                        New Layout
+                      </button>
+                    </div>
                     <div className="flex gap-2">
                       <input
                         type="text"
@@ -408,33 +413,53 @@ export function Settings() {
                         placeholder="Template Name"
                         className="flex-1 px-3 py-1.5 text-sm rounded-lg border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
                       />
-                      <button
-                        onClick={handleCreateTemplate}
-                        disabled={saving || !templateName.trim()}
-                        className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
-                      >
-                        <Save size={16} />
-                      </button>
+                      {editingTemplateId ? (
+                        <button
+                          onClick={handleUpdateTemplate}
+                          disabled={saving || !templateName.trim()}
+                          className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-bold transition-colors disabled:opacity-50 flex items-center gap-2"
+                        >
+                          <Save size={16} />
+                          Update
+                        </button>
+                      ) : (
+                        <button
+                          onClick={handleCreateTemplate}
+                          disabled={saving || !templateName.trim()}
+                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-bold transition-colors disabled:opacity-50 flex items-center gap-2"
+                        >
+                          <Save size={16} />
+                          Save
+                        </button>
+                      )}
                     </div>
                   </div>
 
                   {/* Saved Templates Section */}
                   {savedTemplates.length > 0 && (
                     <div className="space-y-2">
-                       <h3 className="text-sm font-bold text-zinc-900 dark:text-white mb-2">Saved Layouts</h3>
-                       <div className="grid gap-2">
+                       <h3 className="text-sm font-bold text-zinc-900 dark:text-white mb-2">Your Saved Layouts</h3>
+                       <div className="grid gap-2 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
                          {savedTemplates.map(t => (
                            <div key={t.id} className="flex items-center gap-2 group">
                              <button
                                onClick={() => handleLoadTemplate(t)}
-                               className="flex-1 text-left px-3 py-2 rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-sm font-medium hover:border-indigo-500 hover:text-indigo-600 transition-all flex items-center gap-2"
+                               className={clsx(
+                                 "flex-1 text-left px-3 py-2 rounded-lg border text-sm font-medium transition-all flex items-center justify-between group/btn",
+                                 editingTemplateId === t.id
+                                   ? "bg-indigo-50 dark:bg-indigo-900/30 border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300"
+                                   : "bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-indigo-400"
+                               )}
                              >
-                               <FolderOpen size={14} className="text-zinc-400 group-hover:text-indigo-500" />
-                               {t.name}
+                               <div className="flex items-center gap-2">
+                                 <FolderOpen size={14} className={clsx(editingTemplateId === t.id ? "text-indigo-500" : "text-zinc-400")} />
+                                 <span className="truncate max-w-[120px]">{t.name}</span>
+                               </div>
+                               {editingTemplateId === t.id && <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />}
                              </button>
                              <button
                                onClick={() => handleDeleteTemplate(t.id)}
-                               className="p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors"
+                               className="p-2 text-zinc-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
                              >
                                <Trash2 size={14} />
                              </button>
@@ -544,9 +569,14 @@ export function Settings() {
               <button
                 onClick={handleSaveCustomConfig}
                 disabled={saving}
-                className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-colors font-medium shadow-sm disabled:opacity-50"
+                className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-colors font-bold shadow-md shadow-indigo-100 dark:shadow-none disabled:opacity-50 flex items-center gap-2"
               >
-                {saving ? 'Saving...' : 'Save Custom Template'}
+                {saving ? 'Saving...' : (
+                  <>
+                    <Check size={18} />
+                    Apply & Set Active
+                  </>
+                )}
               </button>
             </div>
           </div>
