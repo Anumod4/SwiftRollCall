@@ -29,23 +29,23 @@ export function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8 transition-colors">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col justify-center py-6 sm:px-6 lg:px-8 transition-colors">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
-          <img src="/assets/logo.png" alt="SwiftRollCall Logo" className="w-48 h-48 rounded-2xl shadow-xl object-contain bg-white dark:bg-slate-800 p-2" />
+          <img src="/assets/logo.png" alt="SwiftRollCall Logo" className="w-48 h-48 object-contain" />
         </div>
-        <h2 className="mt-6 text-center text-base font-extrabold text-slate-900 dark:text-white">
+        <h2 className="mt-2 text-center text-base font-bold text-slate-900 dark:text-white">
           Sign in to your account
         </h2>
-        <p className="mt-2 text-center text-sm text-slate-600 dark:text-slate-400">
+        <p className="mt-1 text-center text-xs text-slate-500 dark:text-slate-400">
           Or{' '}
-          <Link to="/signup" className="font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 transition-colors">
+          <Link to="/signup" className="font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 transition-colors">
             create a new account
           </Link>
         </p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+      <div className="mt-4 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white dark:bg-slate-800 py-8 px-4 shadow sm:rounded-2xl sm:px-10 border border-slate-100 dark:border-slate-700 transition-colors">
           <form className="space-y-6" onSubmit={handleSubmit}>
             {error && (
