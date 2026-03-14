@@ -64,7 +64,6 @@ export function Layout() {
             <img src="/assets/logo.png" alt="Logo" className="w-32 h-32 object-contain" />
             <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white">SwiftRollCall</h1>
           </div>
-          <p className="text-zinc-500 dark:text-zinc-400 text-sm mt-1">Manage your business</p>
         </div>
         <nav className="flex-1 px-4 space-y-2 mt-4">
           {navItems.map((item) => {
