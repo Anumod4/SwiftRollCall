@@ -22,10 +22,10 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 transition-colors">
+      <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-900 transition-colors">
         <div className="flex flex-col items-center gap-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-          <p className="text-slate-500 dark:text-slate-400 font-medium">Authenticating...</p>
+          <p className="text-zinc-500 dark:text-zinc-400 font-medium">Authenticating...</p>
         </div>
       </div>
     );
@@ -41,10 +41,10 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function AppRoutes() {
   return (
     <React.Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 transition-colors">
+      <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-900 transition-colors">
         <div className="flex flex-col items-center gap-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-          <p className="text-slate-500 dark:text-slate-400 font-medium">Loading page...</p>
+          <p className="text-zinc-500 dark:text-zinc-400 font-medium">Loading page...</p>
         </div>
       </div>
     }>

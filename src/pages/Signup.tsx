@@ -37,15 +37,15 @@ export function Signup() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col justify-center py-6 sm:px-6 lg:px-8 transition-colors">
+    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 flex flex-col justify-center py-6 sm:px-6 lg:px-8 transition-colors">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
           <img src="/assets/logo.png" alt="SwiftRollCall Logo" className="w-96 h-auto object-contain" />
         </div>
-        <h2 className="-mt-12 text-center text-base font-bold text-slate-900 dark:text-white relative z-10">
+        <h2 className="-mt-12 text-center text-base font-bold text-zinc-900 dark:text-white relative z-10">
           Create a new account
         </h2>
-        <p className="text-center text-xs text-slate-500 dark:text-slate-400">
+        <p className="text-center text-xs text-zinc-500 dark:text-zinc-400">
           Or{' '}
           <Link to="/login" className="font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 transition-colors">
             sign in to your existing account
@@ -54,7 +54,7 @@ export function Signup() {
       </div>
 
       <div className="mt-4 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white dark:bg-slate-800 py-8 px-4 shadow sm:rounded-2xl sm:px-10 border border-slate-100 dark:border-slate-700 transition-colors">
+        <div className="bg-white dark:bg-zinc-800 py-8 px-4 shadow sm:rounded-2xl sm:px-10 border border-zinc-100 dark:border-zinc-700 transition-colors">
           <form className="space-y-6" onSubmit={handleSubmit}>
             {error && (
               <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 px-4 py-3 rounded-xl text-sm">
@@ -63,7 +63,7 @@ export function Signup() {
             )}
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 Full Name
               </label>
               <div className="mt-1">
@@ -72,13 +72,13 @@ export function Signup() {
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="appearance-none block w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white transition-all"
+                  className="appearance-none block w-full px-4 py-3 border border-zinc-300 dark:border-zinc-600 rounded-xl shadow-sm placeholder-zinc-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white transition-all"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 Email address
               </label>
               <div className="mt-1">
@@ -87,13 +87,13 @@ export function Signup() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="appearance-none block w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white transition-all"
+                  className="appearance-none block w-full px-4 py-3 border border-zinc-300 dark:border-zinc-600 rounded-xl shadow-sm placeholder-zinc-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white transition-all"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 Password
               </label>
               <div className="mt-1 relative">
@@ -102,12 +102,12 @@ export function Signup() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none block w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white transition-all pr-12"
+                  className="appearance-none block w-full px-4 py-3 border border-zinc-300 dark:border-zinc-600 rounded-xl shadow-sm placeholder-zinc-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white transition-all pr-12"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-zinc-400 hover:text-zinc-600 transition-colors"
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
@@ -115,7 +115,7 @@ export function Signup() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 Confirm Password
               </label>
               <div className="mt-1 relative">
@@ -124,12 +124,12 @@ export function Signup() {
                   required
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="appearance-none block w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white transition-all pr-12"
+                  className="appearance-none block w-full px-4 py-3 border border-zinc-300 dark:border-zinc-600 rounded-xl shadow-sm placeholder-zinc-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white transition-all pr-12"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-zinc-400 hover:text-zinc-600 transition-colors"
                 >
                   {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
