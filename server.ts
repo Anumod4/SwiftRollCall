@@ -6,7 +6,7 @@ import jwt from 'jsonwebtoken';
 import { format } from 'date-fns';
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-change-in-production';
 
 app.use(express.json());
