@@ -108,17 +108,15 @@ export function Fees() {
     e.preventDefault();
     if (!selectedStudent || !amount) return;
 
-    let waWindow: Window | null = null;
     const student = students.find(s => s.id === Number(selectedStudent));
     const cleanNumber = student?.contactInfo?.replace(/\D/g, '');
-    
-    if (autoNotify && cleanNumber) {
-      // Only open window synchronously if NO automated provider is configured
-      const hasAutomatedProvider = settings?.whatsappProvider === 'rocketsender' || settings?.whatsappProvider === 'meta';
-      if (!hasAutomatedProvider) {
-        waWindow = window.open('', '_blank');
-      }
+    let waWindow: Window | null = null;
+    const hasAutomatedProvider = settings?.whatsappProvider === 'rocketsender' || settings?.whatsappProvider === 'meta';
+
+    if (autoNotify && cleanNumber && student && !hasAutomatedProvider) {
+      waWindow = window.open('about:blank', '_blank');
     }
+
 
     try {
       const response = await api.recordPayment({
@@ -138,7 +136,7 @@ export function Fees() {
                      `*Receipt No:* ${response.receiptNumber}\n` +
                      `${notes ? `*Notes:* ${notes}\n` : ''}\n` +
                      `Thank you for your payment! You can download the official PDF receipt from our portal.`;
-        waWindow.location.href = `https://wa.me/${cleanNumber}?text=${encodeURIComponent(text)}`;
+        waWindow.location.href = `https://web.whatsapp.com/send?phone=${cleanNumber}&text=${encodeURIComponent(text)}`;
       } else if (waWindow) {
         waWindow.close();
       }
@@ -169,7 +167,7 @@ export function Fees() {
                    `*Amount Due:* $${amount}\n` +
                    `*Due Date:* ${displayDate}\n\n` +
                    `Please ignore if already paid. Thank you!`;
-      window.open(`https://wa.me/${cleanNumber}?text=${encodeURIComponent(text)}`, '_blank');
+      window.open(`https://web.whatsapp.com/send?phone=${cleanNumber}&text=${encodeURIComponent(text)}`, '_blank');
     }
 
     try {

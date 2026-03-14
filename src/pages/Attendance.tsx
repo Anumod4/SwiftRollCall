@@ -114,6 +114,18 @@ export function Attendance() {
   const handleMarkAttendance = async (studentId: number, date: Date, status: 'Present' | 'Absent' | 'Cancelled') => {
     const dateStr = format(date, 'yyyy-MM-dd');
     const existing = attendance.find(a => a.studentId === studentId && a.date === dateStr);
+    const isNewOrChanged = !existing || existing.status !== status;
+    const hasAutomatedProvider = settings?.whatsappProvider === 'rocketsender' || settings?.whatsappProvider === 'meta';
+
+    let waWindow: Window | null = null;
+    
+    // START: Open window immediately at the top level of the user action
+    if (isNewOrChanged && autoNotify && !hasAutomatedProvider) {
+      const student = students.find(s => s.id === studentId);
+      if (student && student.contactInfo) {
+        waWindow = window.open('about:blank', '_blank');
+      }
+    }
     
     // Save previous state for rollback
     const previousAttendance = [...attendance];
@@ -134,17 +146,6 @@ export function Attendance() {
     }
     setAttendance(newAttendance);
 
-    // Notification logic
-    const isNewOrChanged = !existing || existing.status !== status;
-    const hasAutomatedProvider = settings?.whatsappProvider === 'rocketsender' || settings?.whatsappProvider === 'meta';
-    
-    let waWindow: Window | null = null;
-    if (isNewOrChanged && autoNotify && !hasAutomatedProvider) {
-      const student = students.find(s => s.id === studentId);
-      if (student && student.contactInfo) {
-        waWindow = window.open('', '_blank');
-      }
-    }
 
     if (isNewOrChanged && autoNotify) {
       const student = students.find(s => s.id === studentId);
@@ -159,7 +160,7 @@ export function Attendance() {
           else if (status === 'Cancelled') text = `Hi, the class for ${student.name}${classPart} on ${displayDate} has been cancelled.`;
           
           if (cleanNumber && text && waWindow) {
-            waWindow.location.href = `https://wa.me/${cleanNumber}?text=${encodeURIComponent(text)}`;
+            waWindow.location.href = `https://web.whatsapp.com/send?phone=${cleanNumber}&text=${encodeURIComponent(text)}`;
           } else if (waWindow) {
             waWindow.close();
           }

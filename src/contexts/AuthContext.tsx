@@ -35,40 +35,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    // Determine active theme
+    // Initial theme sync
+    const savedTheme = localStorage.getItem('theme');
     const userPref = user ? (user as any).darkMode : null;
     let isDark = false;
 
     if (userPref !== null && userPref !== undefined) {
-      // Use user preference if available (handles true, 1, false, 0)
       isDark = !!userPref;
+    } else if (savedTheme) {
+      isDark = savedTheme === 'dark';
     } else {
-      // Fallback to system preference
       isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     }
 
+    const html = document.documentElement;
     if (isDark) {
-      document.documentElement.classList.add('dark');
-      document.documentElement.style.colorScheme = 'dark';
+      html.classList.add('dark');
+      html.style.colorScheme = 'dark';
+      localStorage.setItem('theme', 'dark');
     } else {
-      document.documentElement.classList.remove('dark');
-      document.documentElement.style.colorScheme = 'light';
+      html.classList.remove('dark');
+      html.style.colorScheme = 'light';
+      localStorage.setItem('theme', 'light');
     }
   }, [user]);
 
   const login = (token: string, user: User) => {
     localStorage.setItem('token', token);
+    localStorage.setItem('theme', !!user.darkMode ? 'dark' : 'light');
     setUser(user);
   };
 
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('theme');
     setUser(null);
   };
 
   const updateUser = (updates: Partial<User>) => {
     if (user) {
-      setUser({ ...user, ...updates });
+      const newUser = { ...user, ...updates };
+      if (updates.darkMode !== undefined) {
+        localStorage.setItem('theme', !!updates.darkMode ? 'dark' : 'light');
+      }
+      setUser(newUser);
     }
   };
 
