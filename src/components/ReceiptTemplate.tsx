@@ -20,7 +20,7 @@ export function ReceiptTemplate({ payment, student, template, customConfig }: Re
   const businessName = isCustom && customConfig.businessName ? customConfig.businessName : 'SwiftRollCall Services';
   const footerText = isCustom && customConfig.footerText ? customConfig.footerText : (activeLayout === 'minimalist' ? 'THANK YOU' : 'Thank you for your business!');
   const themeColor = isCustom && customConfig.themeColor ? customConfig.themeColor : '#4f46e5'; // indigo-600
-  const logoUrl = isCustom && customConfig.logoUrl ? customConfig.logoUrl : '/assets/logo.png';
+  const logoUrl = isCustom ? customConfig.logoUrl : '/assets/logo.png';
 
   if (activeLayout === 'classic') {
     return (
