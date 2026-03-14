@@ -35,11 +35,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const isDark = user ? (!!(user as any).darkMode) : window.matchMedia('(prefers-color-scheme: dark)').matches;
+    // Determine active theme
+    const userPref = user ? (user as any).darkMode : null;
+    let isDark = false;
+
+    if (userPref !== null && userPref !== undefined) {
+      // Use user preference if available (handles true, 1, false, 0)
+      isDark = !!userPref;
+    } else {
+      // Fallback to system preference
+      isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+
     if (isDark) {
       document.documentElement.classList.add('dark');
+      document.documentElement.style.colorScheme = 'dark';
     } else {
       document.documentElement.classList.remove('dark');
+      document.documentElement.style.colorScheme = 'light';
     }
   }, [user]);
 
