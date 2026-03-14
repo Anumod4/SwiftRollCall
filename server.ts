@@ -126,13 +126,19 @@ async function setupDatabase() {
     );
   `);
 
-  // Migrations
   try {
     await db.execute("ALTER TABLE users ADD COLUMN darkMode INTEGER DEFAULT 0");
   } catch (e) {}
 
   try {
-    await db.execute("ALTER TABLE users ADD COLUMN username TEXT UNIQUE");
+    // SQLite doesn't support adding UNIQUE columns via ALTER TABLE
+    // We add it as a normal column first
+    await db.execute("ALTER TABLE users ADD COLUMN username TEXT");
+  } catch (e) {}
+
+  try {
+    // Then add a unique index
+    await db.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username)");
   } catch (e) {}
 
   await db.executeMultiple(`
