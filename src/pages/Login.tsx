@@ -35,10 +35,10 @@ export function Login() {
         <div className="flex justify-center">
           <img src="/assets/logo.png" alt="SwiftRollCall Logo" className="w-96 h-96 object-contain" />
         </div>
-        <h2 className="mt-2 text-center text-base font-bold text-slate-900 dark:text-white">
+        <h2 className="text-center text-base font-bold text-slate-900 dark:text-white">
           Sign in to your account
         </h2>
-        <p className="mt-1 text-center text-xs text-slate-500 dark:text-slate-400">
+        <p className="text-center text-xs text-slate-500 dark:text-slate-400">
           Or{' '}
           <Link to="/signup" className="font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 transition-colors">
             create a new account
