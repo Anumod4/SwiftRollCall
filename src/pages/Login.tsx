@@ -33,9 +33,9 @@ export function Login() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col justify-center py-6 sm:px-6 lg:px-8 transition-colors">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
-          <img src="/assets/logo.png" alt="SwiftRollCall Logo" className="w-96 h-96 object-contain" />
+          <img src="/assets/logo.png" alt="SwiftRollCall Logo" className="w-96 h-auto object-contain" />
         </div>
-        <h2 className="text-center text-base font-bold text-slate-900 dark:text-white">
+        <h2 className="-mt-12 text-center text-base font-bold text-slate-900 dark:text-white relative z-10">
           Sign in to your account
         </h2>
         <p className="text-center text-xs text-slate-500 dark:text-slate-400">
