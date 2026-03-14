@@ -4,6 +4,11 @@ import { createClient } from '@libsql/client';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { format } from 'date-fns';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -115,8 +120,16 @@ async function setupDatabase() {
       email TEXT UNIQUE NOT NULL,
       password TEXT NOT NULL,
       name TEXT NOT NULL,
+      darkMode INTEGER DEFAULT 0,
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    // Migrations
+    try {
+      await db.execute("ALTER TABLE users ADD COLUMN darkMode INTEGER DEFAULT 0");
+    } catch (e) {
+      // Column might already exist
+    }
 
     CREATE TABLE IF NOT EXISTS classes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -166,6 +179,10 @@ async function setupDatabase() {
     INSERT OR IGNORE INTO settings (key, value) VALUES ('whatsappProvider', 'meta');
   `);
 
+  try {
+    await db.execute('ALTER TABLE users ADD COLUMN darkMode INTEGER DEFAULT 0');
+  } catch (e) {}
+
   // Migration: Add classId to students if it doesn't exist
   try {
     await db.execute('ALTER TABLE students ADD COLUMN classId INTEGER REFERENCES classes(id)');
@@ -187,7 +204,7 @@ app.post('/api/auth/signup', async (req, res) => {
     });
     
     const token = jwt.sign({ id: Number(result.lastInsertRowid), email }, JWT_SECRET, { expiresIn: '7d' });
-    res.json({ token, user: { id: Number(result.lastInsertRowid), name, email } });
+    res.json({ token, user: { id: Number(result.lastInsertRowid), name, email, darkMode: false } });
   } catch (error: any) {
     if (error.message?.includes('UNIQUE constraint failed')) {
       return res.status(400).json({ error: 'Email already exists' });
@@ -216,7 +233,7 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
-    res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
+    res.json({ token, user: { id: user.id, name: user.name, email: user.email, darkMode: Boolean(user.darkMode) } });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to login' });
@@ -226,17 +243,58 @@ app.post('/api/auth/login', async (req, res) => {
 app.get('/api/auth/me', authenticateToken, async (req: any, res: any) => {
   try {
     const result = await db.execute({
-      sql: 'SELECT id, name, email FROM users WHERE id = ?',
+      sql: 'SELECT id, name, email, darkMode FROM users WHERE id = ?',
       args: [req.user.id]
     });
     
     const user = result.rows[0];
     if (!user) return res.status(404).json({ error: 'User not found' });
     
-    res.json({ user });
+    res.json({ 
+      user: { 
+        ...user, 
+        darkMode: Boolean(user.darkMode) 
+      } 
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to get user' });
+  }
+});
+
+app.put('/api/auth/profile', authenticateToken, async (req: any, res: any) => {
+  const { name, email, darkMode } = req.body;
+  try {
+    const updates: string[] = [];
+    const args: any[] = [];
+
+    if (name !== undefined) {
+      updates.push('name = ?');
+      args.push(name);
+    }
+    if (email !== undefined) {
+      updates.push('email = ?');
+      args.push(email);
+    }
+    if (darkMode !== undefined) {
+      updates.push('darkMode = ?');
+      args.push(darkMode ? 1 : 0);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'No updates provided' });
+    }
+
+    args.push(req.user.id);
+    await db.execute({
+      sql: `UPDATE users SET ${updates.join(', ')} WHERE id = ?`,
+      args
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to update profile' });
   }
 });
 
@@ -580,6 +638,10 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     app.use(express.static('dist'));
+    app.get('*', (req, res) => {
+      if (req.path.startsWith('/api')) return res.status(404).json({ error: 'API route not found' });
+      res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+    });
   }
 
   app.listen(PORT, '0.0.0.0', () => {

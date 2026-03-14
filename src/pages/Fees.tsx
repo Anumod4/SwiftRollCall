@@ -182,7 +182,7 @@ export function Fees() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Fee Ledger</h1>
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Fee Ledger</h1>
         <button
           onClick={() => setIsModalOpen(true)}
           className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl flex items-center gap-2 shadow-sm transition-colors w-full sm:w-auto justify-center"
@@ -195,7 +195,7 @@ export function Fees() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Balances / Students List */}
         <div className="lg:col-span-2 space-y-4">
-          <h2 className="text-xl font-semibold text-slate-900">Student Balances</h2>
+          <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Student Balances</h2>
           {loading ? (
             <div className="text-slate-500">Loading...</div>
           ) : students.length === 0 ? (
@@ -209,21 +209,21 @@ export function Fees() {
                 const totalPaid = studentPayments.reduce((sum, p) => sum + p.amount, 0);
                 
                 return (
-                  <div key={student.id} className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm border border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div key={student.id} className="bg-white dark:bg-slate-800 rounded-2xl p-4 sm:p-6 shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-colors">
                     <div>
-                      <h3 className="text-lg font-semibold text-slate-900">{student.name}</h3>
-                      <p className="text-sm text-slate-500">
+                      <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{student.name}</h3>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
                         Rate: ${student.rateAmount} / {student.rateType === 'hourly' ? 'hr' : 'mo'}
                       </p>
                     </div>
-                    <div className="flex items-center justify-between w-full sm:w-auto gap-6 sm:gap-6 border-t sm:border-0 border-slate-100 pt-4 sm:pt-0 mt-2 sm:mt-0">
+                    <div className="flex items-center justify-between w-full sm:w-auto gap-6 sm:gap-6 border-t sm:border-0 border-slate-100 dark:border-slate-700 pt-4 sm:pt-0 mt-2 sm:mt-0">
                       <div className="text-left sm:text-right">
-                        <p className="text-sm text-slate-500">Total Paid</p>
-                        <p className="text-xl font-bold text-emerald-600">${totalPaid.toFixed(2)}</p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Total Paid</p>
+                        <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">${totalPaid.toFixed(2)}</p>
                       </div>
                       <button 
                         onClick={() => handleSendReminder(student.id, student.rateAmount)}
-                        className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors shrink-0"
+                        className="p-2 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-xl transition-colors shrink-0"
                         title="Send Payment Reminder"
                       >
                         <Bell size={20} />
@@ -238,23 +238,23 @@ export function Fees() {
 
         {/* Recent Payments */}
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold text-slate-900">Recent Payments</h2>
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+          <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Recent Payments</h2>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden transition-colors">
             {loading ? (
               <div className="p-6 text-center text-slate-500">Loading...</div>
             ) : payments.length === 0 ? (
               <div className="p-6 text-center text-slate-500">No recent payments.</div>
             ) : (
-              <div className="divide-y divide-slate-50">
+              <div className="divide-y divide-slate-50 dark:divide-slate-700">
                 {payments.slice(0, 10).map(payment => {
                   const student = students.find(s => s.id === payment.studentId);
                   return (
-                    <div key={payment.id} className="p-4 hover:bg-slate-50 transition-colors">
+                    <div key={payment.id} className="p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
                       <div className="flex justify-between items-start mb-1">
-                        <span className="font-medium text-slate-900">{student?.name || 'Unknown'}</span>
-                        <span className="font-bold text-emerald-600">+${payment.amount.toFixed(2)}</span>
+                        <span className="font-medium text-slate-900 dark:text-white">{student?.name || 'Unknown'}</span>
+                        <span className="font-bold text-emerald-600 dark:text-emerald-400">+${payment.amount.toFixed(2)}</span>
                       </div>
-                      <div className="flex justify-between items-center text-xs text-slate-500">
+                      <div className="flex justify-between items-center text-xs text-slate-500 dark:text-slate-400">
                         <span className="flex items-center gap-1">
                           <FileText size={12} />
                           {payment.receiptNumber}
@@ -264,7 +264,7 @@ export function Fees() {
                           {student && (
                             <button 
                               onClick={() => setSelectedReceipt({ payment, student })}
-                              className="text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1"
+                              className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium flex items-center gap-1"
                             >
                               <FileText size={14} /> View
                             </button>
@@ -282,26 +282,26 @@ export function Fees() {
 
       {/* Payment Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
-            <h2 className="text-2xl font-bold text-slate-900 mb-6">Record Payment</h2>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-md shadow-xl border border-slate-100 dark:border-slate-700 transition-all">
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">Record Payment</h2>
             <form onSubmit={handlePaymentSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Student</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Student</label>
                 <select
                   required
                   value={selectedStudent}
                   onChange={(e) => setSelectedStudent(Number(e.target.value))}
-                  className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all bg-white"
+                  className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
                 >
-                  <option value="" disabled>Select a student</option>
+                  <option value="" disabled className="text-slate-400">Select a student</option>
                   {students.map(s => (
                     <option key={s.id} value={s.id}>{s.name}</option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Amount ($)</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Amount ($)</label>
                 <input
                   type="number"
                   required
@@ -309,46 +309,46 @@ export function Fees() {
                   step="0.01"
                   value={amount}
                   onChange={(e) => setAmount(Number(e.target.value))}
-                  className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+                  className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
                   placeholder="0.00"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Date</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Date</label>
                 <input
                   type="date"
                   required
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
-                  className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+                  className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Notes (Optional)</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Notes (Optional)</label>
                 <input
                   type="text"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+                  className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
                   placeholder="e.g. March tuition"
                 />
               </div>
               
-              <label className="flex items-center gap-2 cursor-pointer bg-slate-50 p-3 rounded-xl border border-slate-100 mt-4">
+              <label className="flex items-center gap-2 cursor-pointer bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700 mt-4 transition-colors">
                 <input 
                   type="checkbox" 
                   checked={autoNotify}
                   onChange={(e) => setAutoNotify(e.target.checked)}
-                  className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500"
+                  className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700"
                 />
-                <span className="text-sm font-medium text-slate-700">Open WhatsApp notification after saving</span>
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Open WhatsApp notification after saving</span>
               </label>
 
               <div className="flex justify-end gap-3 mt-8">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl transition-colors font-medium"
+                  className="px-4 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors font-medium"
                 >
                   Cancel
                 </button>
@@ -366,14 +366,14 @@ export function Fees() {
 
       {/* Receipt Modal */}
       {selectedReceipt && settings && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-2xl shadow-xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-2xl shadow-xl max-h-[90vh] overflow-y-auto border border-slate-100 dark:border-slate-700 transition-all">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 print:hidden">
-              <h2 className="text-2xl font-bold text-slate-900">Receipt</h2>
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Receipt</h2>
               <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                 <button
                   onClick={() => window.print()}
-                  className="flex-1 sm:flex-none px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-colors font-medium flex items-center justify-center gap-2"
+                  className="flex-1 sm:flex-none px-4 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-xl transition-colors font-medium flex items-center justify-center gap-2"
                 >
                   <Printer size={18} />
                   Print
@@ -395,7 +395,7 @@ export function Fees() {
                 </button>
                 <button
                   onClick={() => setSelectedReceipt(null)}
-                  className="flex-1 sm:flex-none px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl transition-colors font-medium text-center"
+                  className="flex-1 sm:flex-none px-4 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors font-medium text-center"
                 >
                   Close
                 </button>

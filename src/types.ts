@@ -1,3 +1,10 @@
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+  darkMode: boolean;
+}
+
 export interface Class {
   id: number;
   name: string;

@@ -1,4 +1,4 @@
-import { Student, Attendance, Payment, AppSettings, Class } from '../types';
+import { Student, Attendance, Payment, AppSettings, Class, User } from '../types';
 
 const getHeaders = () => {
   const token = localStorage.getItem('token');
@@ -34,8 +34,16 @@ export const api = {
     });
     return handleResponse(res);
   },
-  getMe: async () => {
+  getMe: async (): Promise<{ user: User }> => {
     const res = await fetch('/api/auth/me', { headers: getHeaders() });
+    return handleResponse(res);
+  },
+  updateProfile: async (profile: Partial<User>): Promise<{ success: boolean }> => {
+    const res = await fetch('/api/auth/profile', {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(profile),
+    });
     return handleResponse(res);
   },
 
