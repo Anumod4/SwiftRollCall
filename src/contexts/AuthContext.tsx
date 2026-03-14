@@ -35,13 +35,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    // Initial theme sync
+    // Determine the source of truth for the theme
     const savedTheme = localStorage.getItem('theme');
-    const userPref = user ? (user as any).darkMode : null;
+    const userPref = user?.darkMode;
+    
     let isDark = false;
-
-    if (userPref !== null && userPref !== undefined) {
-      isDark = !!userPref;
+    if (userPref !== undefined && userPref !== null) {
+      // User is logged in and has a preference
+      isDark = userPref === true || (userPref as any) === 1 || (userPref as any) === '1';
     } else if (savedTheme) {
       isDark = savedTheme === 'dark';
     } else {
@@ -58,17 +59,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       html.style.colorScheme = 'light';
       localStorage.setItem('theme', 'light');
     }
-  }, [user]);
+  }, [user?.darkMode, user]);
 
-  const login = (token: string, user: User) => {
+  const applyTheme = (isDark: boolean) => {
+    const html = document.documentElement;
+    if (isDark) {
+      html.classList.add('dark');
+      html.style.colorScheme = 'dark';
+      localStorage.setItem('theme', 'dark');
+    } else {
+      html.classList.remove('dark');
+      html.style.colorScheme = 'light';
+      localStorage.setItem('theme', 'light');
+    }
+  };
+
+  const login = (token: string, userData: User) => {
     localStorage.setItem('token', token);
-    localStorage.setItem('theme', !!user.darkMode ? 'dark' : 'light');
-    setUser(user);
+    const isDark = userData.darkMode === true || (userData.darkMode as any) === 1 || (userData.darkMode as any) === '1';
+    applyTheme(isDark);
+    setUser(userData);
   };
 
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('theme');
+    // On logout, fallback to system preference
+    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    applyTheme(isDark);
     setUser(null);
   };
 
@@ -76,7 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (user) {
       const newUser = { ...user, ...updates };
       if (updates.darkMode !== undefined) {
-        localStorage.setItem('theme', !!updates.darkMode ? 'dark' : 'light');
+        applyTheme(updates.darkMode);
       }
       setUser(newUser);
     }

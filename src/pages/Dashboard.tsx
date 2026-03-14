@@ -188,57 +188,99 @@ export function Dashboard() {
           </div>
         </motion.div>
 
-        {/* Recent Activity */}
+        {/* Recent Activity Feed */}
         <motion.div 
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="bg-white dark:bg-zinc-800 rounded-3xl p-8 border border-zinc-100 dark:border-zinc-700 shadow-sm overflow-hidden"
+          className="bg-zinc-50 dark:bg-zinc-900/40 rounded-[2.5rem] p-8 border border-zinc-100 dark:border-zinc-800 shadow-xl shadow-zinc-200/20 dark:shadow-none overflow-hidden relative"
         >
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-zinc-900 dark:text-white">Recent Payments</h2>
-            <button className="text-indigo-600 text-xs font-bold hover:underline">View all</button>
-          </div>
-
-          <div className="space-y-6">
-            {stats?.recentPayments.map((payment, i) => (
-              <div key={i} className="flex items-center gap-4 group">
-                <div className="w-10 h-10 rounded-full bg-indigo-50 dark:bg-zinc-700 flex items-center justify-center flex-shrink-0 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
-                  {payment.studentName.charAt(0)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-zinc-900 dark:text-white truncate group-hover:text-indigo-600 transition-colors">
-                    {payment.studentName}
-                  </p>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                    {format(new Date(payment.date), 'MMM d, h:mm a')}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-bold text-emerald-600">+${payment.amount}</p>
-                </div>
+          {/* Decorative background element */}
+          <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
+          
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h2 className="text-2xl font-black text-zinc-900 dark:text-white tracking-tight">Recent Activity</h2>
+                <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mt-1">Live updates</p>
               </div>
-            ))}
-            
-            {(!stats?.recentPayments || stats.recentPayments.length === 0) && (
-              <div className="text-center py-8">
-                <div className="w-16 h-16 bg-zinc-50 dark:bg-zinc-700 rounded-full flex items-center justify-center mx-auto mb-4 text-zinc-300">
-                  <Clock size={32} />
-                </div>
-                <p className="text-sm text-zinc-500">No recent payments recorded yet.</p>
-              </div>
-            )}
-          </div>
-
-          <div className="mt-8 p-4 bg-indigo-600 rounded-2xl text-white relative overflow-hidden group">
-            <div className="relative z-10">
-              <p className="text-xs font-medium text-indigo-100 uppercase tracking-wider mb-1">Weekly Target</p>
-              <h3 className="text-lg font-bold">Goal reach: 84%</h3>
-              <div className="mt-3 w-full bg-white/20 rounded-full h-1.5 overflow-hidden">
-                <div className="bg-white h-full transition-all duration-1000" style={{ width: '84%' }}></div>
-              </div>
+              <button className="w-10 h-10 rounded-2xl bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-zinc-400 hover:text-indigo-600 transition-colors shadow-sm">
+                <MoreVertical size={20} />
+              </button>
             </div>
-            <div className="absolute top-0 right-0 p-2 opacity-20 transform translate-x-2 -translate-y-2 group-hover:rotate-12 transition-transform">
-              <TrendingUp size={64} />
+
+            <div className="space-y-4">
+              {stats?.recentPayments.map((payment, i) => (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                  key={i} 
+                  className="bg-white dark:bg-zinc-800 p-4 rounded-3xl shadow-sm border border-zinc-100 dark:border-zinc-700/50 flex items-center gap-5 group hover:translate-x-1 transition-all"
+                >
+                  <div className="relative">
+                    <div className="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-extrabold text-xl shadow-inner uppercase">
+                      {payment.studentName.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                    </div>
+                    <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-lg bg-emerald-500 border-4 border-white dark:border-zinc-800 flex items-center justify-center">
+                      <CheckCircle2 size={12} className="text-white" />
+                    </div>
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-black text-zinc-900 dark:text-white truncate">
+                      {payment.studentName}
+                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className="flex items-center gap-1 text-[10px] font-bold text-zinc-400 uppercase tracking-tighter">
+                        <Clock size={10} />
+                        {format(new Date(payment.date), 'h:mm a')}
+                      </div>
+                      <span className="w-1 h-1 rounded-full bg-zinc-200 dark:bg-zinc-700" />
+                      <span className="text-[10px] font-bold text-indigo-500/80 dark:text-indigo-400/80 uppercase tracking-tighter">
+                        Success
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="text-right whitespace-nowrap">
+                    <p className="text-lg font-black text-emerald-600 dark:text-emerald-500 tabular-nums">
+                      +${payment.amount.toLocaleString()}
+                    </p>
+                  </div>
+                </motion.div>
+              ))}
+              
+              {(!stats?.recentPayments || stats.recentPayments.length === 0) && (
+                <div className="text-center py-12">
+                  <div className="w-20 h-20 bg-zinc-100/50 dark:bg-zinc-800/50 rounded-full flex items-center justify-center mx-auto mb-6 text-zinc-300">
+                    <Clock size={40} />
+                  </div>
+                  <p className="text-sm font-bold text-zinc-400 uppercase tracking-widest">Quiet day so far...</p>
+                  <p className="text-xs text-zinc-500 mt-2">No payments recorded recently.</p>
+                </div>
+              )}
+            </div>
+
+            <button className="w-full mt-6 py-4 rounded-2xl border-2 border-dashed border-zinc-200 dark:border-zinc-700 text-zinc-400 text-xs font-bold uppercase tracking-widest hover:border-indigo-300 hover:text-indigo-500 dark:hover:border-indigo-900 transition-all">
+              View All History
+            </button>
+            <div className="mt-8 p-6 bg-indigo-600 rounded-[2rem] text-white relative overflow-hidden group shadow-lg shadow-indigo-200 dark:shadow-none">
+              <div className="relative z-10">
+                <p className="text-[10px] font-bold text-indigo-100 uppercase tracking-widest mb-1">Weekly Enrollment Goal</p>
+                <h3 className="text-xl font-black">Target reach: 84%</h3>
+                <div className="mt-4 w-full bg-white/20 rounded-full h-2 overflow-hidden backdrop-blur-sm">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: '84%' }}
+                    transition={{ duration: 1.5, ease: "easeOut" }}
+                    className="bg-white h-full" 
+                  />
+                </div>
+                <p className="mt-3 text-[10px] text-indigo-100 font-medium">4 more students to reach your weekly milestone!</p>
+              </div>
+              <div className="absolute top-0 right-0 p-4 opacity-10 transform translate-x-4 -translate-y-4 group-hover:scale-110 transition-transform">
+                <TrendingUp size={120} />
+              </div>
             </div>
           </div>
         </motion.div>

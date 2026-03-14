@@ -207,25 +207,43 @@ export function Fees() {
                 const totalPaid = studentPayments.reduce((sum, p) => sum + p.amount, 0);
                 
                 return (
-                  <div key={student.id} className="bg-white dark:bg-zinc-800 rounded-2xl p-4 sm:p-6 shadow-sm border border-zinc-100 dark:border-zinc-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-colors">
-                    <div>
-                      <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">{student.name}</h3>
-                      <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                        Rate: ${student.rateAmount} / {student.rateType === 'hourly' ? 'hr' : 'mo'}
-                      </p>
-                    </div>
-                    <div className="flex items-center justify-between w-full sm:w-auto gap-6 sm:gap-6 border-t sm:border-0 border-zinc-100 dark:border-zinc-700 pt-4 sm:pt-0 mt-2 sm:mt-0">
-                      <div className="text-left sm:text-right">
-                        <p className="text-sm text-zinc-500 dark:text-zinc-400">Total Paid</p>
-                        <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">${totalPaid.toFixed(2)}</p>
+                  <div key={student.id} className="group relative bg-white dark:bg-zinc-800 rounded-3xl p-6 shadow-sm border border-zinc-100 dark:border-zinc-700 hover:shadow-md transition-all">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-lg">
+                          {student.name.charAt(0)}
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-bold text-zinc-900 dark:text-white group-hover:text-indigo-600 transition-colors">{student.name}</h3>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400 capitalize">
+                              {student.rateType}
+                            </span>
+                            <span className="text-xs text-zinc-400 dark:text-zinc-500">
+                              Fees: ${student.rateAmount}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                      <button 
-                        onClick={() => handleSendReminder(student.id, student.rateAmount)}
-                        className="p-2 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-xl transition-colors shrink-0"
-                        title="Send Payment Reminder"
-                      >
-                        <Bell size={20} />
-                      </button>
+                      
+                      <div className="flex items-center justify-between w-full sm:w-auto gap-8 sm:gap-10 border-t sm:border-0 border-zinc-50 dark:border-zinc-700/50 pt-4 sm:pt-0 mt-2 sm:mt-0">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Total Received</span>
+                          <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400 tabular-nums">
+                            ${totalPaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={() => handleSendReminder(student.id, student.rateAmount)}
+                            className="w-10 h-10 flex items-center justify-center bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-xl hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors shadow-sm border border-amber-100/50 dark:border-amber-900/30"
+                            title="Send Payment Reminder"
+                          >
+                            <Bell size={18} />
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 );
@@ -236,38 +254,61 @@ export function Fees() {
 
         {/* Recent Payments */}
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold text-zinc-900 dark:text-white">Recent Payments</h2>
-          <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-700 overflow-hidden transition-colors">
+          <div className="flex items-center justify-between px-2">
+            <h2 className="text-xl font-bold text-zinc-900 dark:text-white">Recent Transactions</h2>
+            <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">{payments.length} TOTAL</span>
+          </div>
+          <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-3xl p-2 border border-zinc-100 dark:border-zinc-800 transition-colors">
             {loading ? (
-              <div className="p-6 text-center text-zinc-500">Loading...</div>
+              <div className="p-8 text-center text-zinc-500">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+                Loading transactions...
+              </div>
             ) : payments.length === 0 ? (
-              <div className="p-6 text-center text-zinc-500">No recent payments.</div>
+              <div className="p-8 text-center text-zinc-500 font-medium">No recent payments.</div>
             ) : (
-              <div className="divide-y divide-zinc-50 dark:divide-zinc-700">
+              <div className="space-y-2">
                 {payments.slice(0, 10).map(payment => {
                   const student = students.find(s => s.id === payment.studentId);
                   return (
-                    <div key={payment.id} className="p-4 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors">
-                      <div className="flex justify-between items-start mb-1">
-                        <span className="font-medium text-zinc-900 dark:text-white">{student?.name || 'Unknown'}</span>
-                        <span className="font-bold text-emerald-600 dark:text-emerald-400">+${payment.amount.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between items-center text-xs text-zinc-500 dark:text-zinc-400">
-                        <span className="flex items-center gap-1">
-                          <FileText size={12} />
-                          {payment.receiptNumber}
-                        </span>
+                    <div key={payment.id} className="bg-white dark:bg-zinc-800 p-4 rounded-2xl shadow-sm border border-zinc-100/50 dark:border-zinc-700/50 flex flex-col gap-3 group hover:border-indigo-200 dark:hover:border-indigo-800 transition-all">
+                      <div className="flex justify-between items-start">
                         <div className="flex items-center gap-3">
-                          <span>{format(new Date(payment.date), 'MMM d, yyyy')}</span>
-                          {student && (
-                            <button 
-                              onClick={() => setSelectedReceipt({ payment, student })}
-                              className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium flex items-center gap-1"
-                            >
-                              <FileText size={14} /> View
-                            </button>
-                          )}
+                          <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                            <DollarSign size={20} />
+                          </div>
+                          <div>
+                            <p className="font-bold text-sm text-zinc-900 dark:text-white truncate max-w-[120px]">
+                              {student?.name || 'Unknown'}
+                            </p>
+                            <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-bold uppercase tracking-tight">
+                              {format(new Date(payment.date), 'MMM d, h:mm a')}
+                            </p>
+                          </div>
                         </div>
+                        <div className="text-right">
+                          <p className="font-black text-emerald-600 dark:text-emerald-400">
+                            +${payment.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </p>
+                          <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter">
+                            {payment.receiptNumber}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center justify-between pt-2 border-t border-zinc-50 dark:border-zinc-700/30">
+                        {payment.notes ? (
+                          <span className="text-[10px] text-zinc-500 dark:text-zinc-400 italic truncate pr-4">
+                            "{payment.notes}"
+                          </span>
+                        ) : <div />}
+                        <button 
+                          onClick={() => setSelectedReceipt({ payment, student: student! })}
+                          className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg transition-colors"
+                        >
+                          <FileText size={12} />
+                          RECEIPT
+                        </button>
                       </div>
                     </div>
                   );
