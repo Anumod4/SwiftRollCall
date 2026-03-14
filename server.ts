@@ -606,66 +606,66 @@ app.post('/api/payments', async (req, res) => {
 // Dashboard Stats
 app.get('/api/dashboard/stats', authenticateToken, async (req, res) => {
   try {
-    const totalStudentsResult = await db.execute('SELECT COUNT(*) as count FROM students');
-    const totalClassesResult = await db.execute('SELECT COUNT(*) as count FROM classes');
-    
-    // Monthly revenue (current month)
+    // Parallelize all count and aggregate queries
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = (now.getMonth() + 1).toString().padStart(2, '0');
     const currentMonthStr = `${currentYear}-${currentMonth}`;
 
-    const monthlyRevenueResult = await db.execute({
-      sql: "SELECT SUM(amount) as total FROM payments WHERE date LIKE ?",
-      args: [`${currentMonthStr}%`]
-    });
-
-    // Attendance rate (last 30 days)
-    const attendanceStatsResult = await db.execute(`
-      SELECT 
-        COUNT(*) as total,
-        SUM(CASE WHEN status = 'Present' THEN 1 ELSE 0 END) as present
-      FROM attendance
-      WHERE date >= date('now', '-30 days')
-    `);
-
-    // Recent payments with student names
-    const recentPaymentsResult = await db.execute(`
-      SELECT p.*, s.name as studentName 
-      FROM payments p 
-      JOIN students s ON p.studentId = s.id 
-      ORDER BY p.date DESC 
-      LIMIT 5
-    `);
-
-    // Revenue by month (last 6 months)
-    const revenueByMonthResult = await db.execute(`
-      SELECT substr(date, 1, 7) as month, SUM(amount) as amount 
-      FROM payments 
-      GROUP BY month 
-      ORDER BY month DESC 
-      LIMIT 6
-    `);
-
-    // Attendance by day (last 7 days)
-    const attendanceByDayResult = await db.execute(`
-      SELECT 
-        date,
-        (SUM(CASE WHEN status = 'Present' THEN 1 ELSE 0 END) * 100.0 / COUNT(*)) as rate
-      FROM attendance 
-      WHERE date >= date('now', '-7 days')
-      GROUP BY date 
-      ORDER BY date ASC
-    `);
-
-    // Student growth (last 6 months)
-    const studentGrowthResult = await db.execute(`
-      SELECT substr(createdAt, 1, 7) as month, COUNT(*) as count 
-      FROM students 
-      GROUP BY month 
-      ORDER BY month DESC 
-      LIMIT 6
-    `);
+    const [
+      totalStudentsResult,
+      totalClassesResult,
+      monthlyRevenueResult,
+      attendanceStatsResult,
+      recentPaymentsResult,
+      revenueByMonthResult,
+      attendanceByDayResult,
+      studentGrowthResult
+    ] = await Promise.all([
+      db.execute('SELECT COUNT(*) as count FROM students'),
+      db.execute('SELECT COUNT(*) as count FROM classes'),
+      db.execute({
+        sql: "SELECT SUM(amount) as total FROM payments WHERE date LIKE ?",
+        args: [`${currentMonthStr}%`]
+      }),
+      db.execute(`
+        SELECT 
+          COUNT(*) as total,
+          SUM(CASE WHEN status = 'Present' THEN 1 ELSE 0 END) as present
+        FROM attendance
+        WHERE date >= date('now', '-30 days')
+      `),
+      db.execute(`
+        SELECT p.*, s.name as studentName 
+        FROM payments p 
+        JOIN students s ON p.studentId = s.id 
+        ORDER BY p.date DESC 
+        LIMIT 5
+      `),
+      db.execute(`
+        SELECT substr(date, 1, 7) as month, SUM(amount) as amount 
+        FROM payments 
+        GROUP BY month 
+        ORDER BY month DESC 
+        LIMIT 6
+      `),
+      db.execute(`
+        SELECT 
+          date,
+          (SUM(CASE WHEN status = 'Present' THEN 1 ELSE 0 END) * 100.0 / COUNT(*)) as rate
+        FROM attendance 
+        WHERE date >= date('now', '-7 days')
+        GROUP BY date 
+        ORDER BY date ASC
+      `),
+      db.execute(`
+        SELECT substr(createdAt, 1, 7) as month, COUNT(*) as count 
+        FROM students 
+        GROUP BY month 
+        ORDER BY month DESC 
+        LIMIT 6
+      `)
+    ]);
 
     const totalStudents = Number(totalStudentsResult.rows[0]?.count || 0);
     const totalClasses = Number(totalClassesResult.rows[0]?.count || 0);

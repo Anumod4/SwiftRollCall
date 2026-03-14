@@ -102,21 +102,31 @@ export function Attendance() {
     const dateStr = format(date, 'yyyy-MM-dd');
     const existing = attendance.find(a => a.studentId === studentId && a.date === dateStr);
     
-    let isNewOrChanged = false;
+    // Save previous state for rollback
+    const previousAttendance = [...attendance];
+    
+    // Optimistic Update
+    let newAttendance = [...attendance];
     if (existing) {
-      if (existing.status !== status) {
-        isNewOrChanged = true;
+      if (existing.status === status) {
+        // Toggle off
+        newAttendance = newAttendance.filter(a => a.id !== existing.id);
+      } else {
+        // Update status
+        newAttendance = newAttendance.map(a => a.id === existing.id ? { ...a, status } : a);
       }
     } else {
-      isNewOrChanged = true;
+      // Add temporary record (id: -1)
+      newAttendance.push({ id: -Date.now(), studentId, date: dateStr, status });
     }
-    
+    setAttendance(newAttendance);
+
+    // Notification logic
+    const isNewOrChanged = !existing || existing.status !== status;
     if (isNewOrChanged && autoNotify) {
       const student = students.find(s => s.id === studentId);
       if (student && student.contactInfo) {
-        // Only open WhatsApp tab if NO automated provider is configured
         const hasAutomatedProvider = settings?.whatsappProvider === 'rocketsender' || settings?.whatsappProvider === 'meta';
-        
         if (!hasAutomatedProvider) {
           const cleanNumber = student.contactInfo.replace(/\D/g, '');
           const displayDate = format(date, 'MMM d, yyyy');
@@ -137,20 +147,26 @@ export function Attendance() {
     try {
       if (existing) {
         if (existing.status === status) {
-          // Toggle off
           await api.deleteAttendance(existing.id);
         } else {
-          // Update (delete and recreate for simplicity)
           await api.deleteAttendance(existing.id);
           await api.markAttendance({ studentId, date: dateStr, status });
         }
       } else {
         await api.markAttendance({ studentId, date: dateStr, status });
       }
-
-      loadData();
+      
+      // Silently refresh to get real IDs
+      const freshAttendance = await api.getAttendance({ 
+        startDate: format(viewMode === 'week' ? startOfWeek(currentDate, { weekStartsOn: 1 }) : startOfMonth(currentDate), 'yyyy-MM-dd'),
+        endDate: format(viewMode === 'week' ? addDays(startOfWeek(currentDate, { weekStartsOn: 1 }), 6) : endOfMonth(currentDate), 'yyyy-MM-dd')
+      });
+      setAttendance(freshAttendance);
     } catch (error) {
       console.error('Failed to mark attendance', error);
+      // Rollback
+      setAttendance(previousAttendance);
+      alert('Failed to sync attendance. Please try again.');
     }
   };
 
