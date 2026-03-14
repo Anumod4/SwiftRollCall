@@ -70,3 +70,9 @@ export interface DashboardStats {
   attendanceByDay: { date: string; rate: number }[];
   studentGrowth: { month: string; count: number }[];
 }
+export interface ReceiptTemplate {
+  id: number;
+  name: string;
+  config: CustomReceiptConfig;
+  createdAt: string;
+}

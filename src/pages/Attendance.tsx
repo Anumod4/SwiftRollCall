@@ -14,8 +14,9 @@ import {
   subMonths,
   addMonths
 } from 'date-fns';
-import { ChevronLeft, ChevronRight, Check, X, Minus, CalendarDays, CalendarRange } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, X, Minus, CalendarDays, CalendarRange, Filter } from 'lucide-react';
 import clsx from 'clsx';
+import { Class } from '../types';
 
 export function Attendance() {
   const [students, setStudents] = useState<Student[]>([]);
@@ -25,11 +26,23 @@ export function Attendance() {
   const [loading, setLoading] = useState(true);
   const [autoNotify, setAutoNotify] = useState(true);
   const [settings, setSettings] = useState<AppSettings | null>(null);
+  const [classes, setClasses] = useState<Class[]>([]);
+  const [selectedClassId, setSelectedClassId] = useState<number | ''>('');
 
   useEffect(() => {
     loadData();
     loadSettings();
+    loadClasses();
   }, [currentDate, viewMode]);
+
+  const loadClasses = async () => {
+    try {
+      const data = await api.getClasses();
+      setClasses(data);
+    } catch (error) {
+      console.error('Failed to load classes', error);
+    }
+  };
 
   const loadSettings = async () => {
     try {
@@ -180,6 +193,10 @@ export function Attendance() {
     }
   };
 
+  const filteredStudents = selectedClassId 
+    ? students.filter(s => s.classId === Number(selectedClassId))
+    : students;
+
   const getStatusIcon = (status: string) => {
     const size = 12;
     switch (status) {
@@ -205,6 +222,21 @@ export function Attendance() {
         <h1 className="text-3xl font-bold text-zinc-900 dark:text-white tracking-tight">Attendance</h1>
         
         <div className="flex flex-wrap items-center gap-4">
+          {/* Class Filter */}
+          <div className="flex items-center gap-2 bg-white dark:bg-zinc-800 px-3 py-1.5 rounded-xl shadow-sm border border-zinc-100 dark:border-zinc-700">
+            <Filter size={16} className="text-zinc-400" />
+            <select
+              value={selectedClassId}
+              onChange={(e) => setSelectedClassId(e.target.value === '' ? '' : Number(e.target.value))}
+              className="bg-transparent border-none text-sm font-medium focus:ring-0 text-zinc-700 dark:text-zinc-300 outline-none min-w-[120px]"
+            >
+              <option value="">All Classes</option>
+              {classes.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+
           {/* Auto Notify Toggle */}
           <label className="flex items-center gap-2 cursor-pointer bg-white dark:bg-zinc-800 px-3 py-1.5 rounded-xl shadow-sm border border-zinc-100 dark:border-zinc-700">
             <input 
@@ -290,12 +322,12 @@ export function Attendance() {
                 <tr>
                   <td colSpan={displayDays.length + 1} className="p-8 text-center text-zinc-500">Loading...</td>
                 </tr>
-              ) : students.length === 0 ? (
+              ) : filteredStudents.length === 0 ? (
                 <tr>
                   <td colSpan={displayDays.length + 1} className="p-8 text-center text-zinc-500">No students found.</td>
                 </tr>
               ) : (
-                students.map(student => (
+                filteredStudents.map(student => (
                   <tr key={student.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-700/50 transition-colors divide-x divide-zinc-100 dark:divide-zinc-700">
                     <td className="p-2 text-xs sm:text-sm truncate max-w-[6rem] sm:max-w-[8rem] font-medium text-zinc-900 dark:text-white sticky left-0 bg-white dark:bg-zinc-800 z-10 shadow-[1px_0_0_0_#f1f5f9] dark:shadow-[1px_0_0_0_#334155]" title={student.name}>
                       {student.name}

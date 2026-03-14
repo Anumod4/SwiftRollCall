@@ -1,4 +1,4 @@
-import { Student, Attendance, Payment, AppSettings, Class, User, DashboardStats } from '../types';
+import { Student, Attendance, Payment, AppSettings, Class, User, DashboardStats, ReceiptTemplate, CustomReceiptConfig } from '../types';
 
 const getHeaders = () => {
   const token = localStorage.getItem('token');
@@ -171,4 +171,34 @@ export const api = {
     const res = await fetch('/api/dashboard/stats', { headers: getHeaders() });
     return handleResponse(res);
   },
+
+  // Receipt Templates
+  getReceiptTemplates: async (): Promise<ReceiptTemplate[]> => {
+    const res = await fetch('/api/receipt-templates', { headers: getHeaders() });
+    return handleResponse(res);
+  },
+  createReceiptTemplate: async (template: { name: string; config: CustomReceiptConfig }): Promise<{ id: number }> => {
+    const res = await fetch('/api/receipt-templates', {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(template),
+    });
+    return handleResponse(res);
+  },
+  updateReceiptTemplate: async (id: number, template: { name: string; config: CustomReceiptConfig }): Promise<{ success: boolean }> => {
+    const res = await fetch(`/api/receipt-templates/${id}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(template),
+    });
+    return handleResponse(res);
+  },
+  deleteReceiptTemplate: async (id: number): Promise<{ success: boolean }> => {
+    const res = await fetch(`/api/receipt-templates/${id}`, { 
+      method: 'DELETE',
+      headers: getHeaders()
+    });
+    return handleResponse(res);
+  },
 };
+

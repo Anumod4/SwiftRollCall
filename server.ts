@@ -176,6 +176,13 @@ async function setupDatabase() {
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS receipt_templates (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      config TEXT NOT NULL,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
     
     INSERT OR IGNORE INTO settings (key, value) VALUES ('receiptTemplate', 'modern');
     INSERT OR IGNORE INTO settings (key, value) VALUES ('whatsappProvider', 'meta');
@@ -342,6 +349,62 @@ app.put('/api/settings', async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to update settings' });
+  }
+});
+
+// Receipt Templates
+app.get('/api/receipt-templates', async (req, res) => {
+  try {
+    const result = await db.execute('SELECT * FROM receipt_templates ORDER BY name');
+    const templates = result.rows.map((row: any) => ({
+      ...row,
+      config: JSON.parse(row.config)
+    }));
+    res.json(templates);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to get templates' });
+  }
+});
+
+app.post('/api/receipt-templates', async (req, res) => {
+  const { name, config } = req.body;
+  try {
+    const result = await db.execute({
+      sql: 'INSERT INTO receipt_templates (name, config) VALUES (?, ?)',
+      args: [name, JSON.stringify(config)]
+    });
+    res.json({ id: Number(result.lastInsertRowid) });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to create template' });
+  }
+});
+
+app.put('/api/receipt-templates/:id', async (req, res) => {
+  const { name, config } = req.body;
+  try {
+    await db.execute({
+      sql: 'UPDATE receipt_templates SET name = ?, config = ? WHERE id = ?',
+      args: [name, JSON.stringify(config), req.params.id]
+    });
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to update template' });
+  }
+});
+
+app.delete('/api/receipt-templates/:id', async (req, res) => {
+  try {
+    await db.execute({
+      sql: 'DELETE FROM receipt_templates WHERE id = ?',
+      args: [req.params.id]
+    });
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to delete template' });
   }
 });
 

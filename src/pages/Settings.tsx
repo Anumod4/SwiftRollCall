@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
-import { AppSettings, CustomReceiptConfig } from '../types';
-import { Check, Settings as SettingsIcon, Edit2, X, MessageSquare, Moon, Sun, FileText } from 'lucide-react';
+import { AppSettings, CustomReceiptConfig, ReceiptTemplate as ReceiptTemplateType } from '../types';
+import { Check, Settings as SettingsIcon, Edit2, X, MessageSquare, Moon, Sun, FileText, Save, Trash2, FolderOpen } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import clsx from 'clsx';
 import { ReceiptTemplate } from '../components/ReceiptTemplate';
@@ -20,10 +20,22 @@ export function Settings() {
     themeColor: '#4f46e5',
     footerText: 'Thank you for your business!'
   });
+  const [savedTemplates, setSavedTemplates] = useState<ReceiptTemplateType[]>([]);
+  const [templateName, setTemplateName] = useState('');
 
   useEffect(() => {
     loadSettings();
+    loadTemplates();
   }, []);
+
+  const loadTemplates = async () => {
+    try {
+      const data = await api.getReceiptTemplates();
+      setSavedTemplates(data);
+    } catch (error) {
+      console.error('Failed to load templates', error);
+    }
+  };
 
   const loadSettings = async () => {
     setLoading(true);
@@ -65,7 +77,7 @@ export function Settings() {
       });
       setSettings({ 
         ...settings, 
-        receiptTemplate: 'custom',
+        receiptTemplate: 'custom', 
         customReceiptConfig: customConfig 
       });
       setIsEditingCustom(false);
@@ -75,6 +87,45 @@ export function Settings() {
       setSaving(false);
     }
   };
+
+  const handleCreateTemplate = async () => {
+    if (!templateName.trim()) return;
+    
+    setSaving(true);
+    try {
+      const { id } = await api.createReceiptTemplate({ 
+        name: templateName, 
+        config: customConfig 
+      });
+      setSavedTemplates([...savedTemplates, { 
+        id, 
+        name: templateName, 
+        config: customConfig, 
+        createdAt: new Date().toISOString() 
+      }]);
+      setTemplateName('');
+    } catch (error) {
+      console.error('Failed to create template', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteTemplate = async (id: number) => {
+    if (!window.confirm('Are you sure you want to delete this template?')) return;
+    
+    try {
+      await api.deleteReceiptTemplate(id);
+      setSavedTemplates(savedTemplates.filter(t => t.id !== id));
+    } catch (error) {
+      console.error('Failed to delete template', error);
+    }
+  };
+
+  const handleLoadTemplate = (template: ReceiptTemplateType) => {
+    setCustomConfig(template.config);
+  };
+
 
   const handleUpdateWhatsApp = async (updates: Partial<AppSettings>) => {
     if (!settings) return;
@@ -345,76 +396,127 @@ export function Settings() {
             <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
               {/* Editor Form */}
               <div className="w-full md:w-1/3 border-r border-zinc-100 dark:border-zinc-700 p-6 overflow-y-auto bg-zinc-50 dark:bg-zinc-900/50">
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Base Layout</label>
-                    <select
-                      value={customConfig.baseLayout}
-                      onChange={(e) => setCustomConfig({...customConfig, baseLayout: e.target.value as any})}
-                      className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                    >
-                      <option value="modern">Modern</option>
-                      <option value="classic">Classic</option>
-                      <option value="minimalist">Minimalist</option>
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Logo URL (Optional)</label>
-                    <input
-                      type="text"
-                      value={customConfig.logoUrl}
-                      onChange={(e) => setCustomConfig({...customConfig, logoUrl: e.target.value})}
-                      placeholder="https://example.com/logo.png"
-                      className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Header Text</label>
-                    <input
-                      type="text"
-                      value={customConfig.headerText}
-                      onChange={(e) => setCustomConfig({...customConfig, headerText: e.target.value})}
-                      className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Business Name</label>
-                    <input
-                      type="text"
-                      value={customConfig.businessName}
-                      onChange={(e) => setCustomConfig({...customConfig, businessName: e.target.value})}
-                      className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Theme Color</label>
+                <div className="space-y-6">
+                  {/* Save Template Section */}
+                  <div className="bg-white dark:bg-zinc-800 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700">
+                    <h3 className="text-sm font-bold text-zinc-900 dark:text-white mb-3">Save as Named Template</h3>
                     <div className="flex gap-2">
                       <input
-                        type="color"
-                        value={customConfig.themeColor}
-                        onChange={(e) => setCustomConfig({...customConfig, themeColor: e.target.value})}
-                        className="h-10 w-10 min-w-[40px] rounded cursor-pointer border-none bg-transparent"
-                      />
-                      <input
                         type="text"
-                        value={customConfig.themeColor}
-                        onChange={(e) => setCustomConfig({...customConfig, themeColor: e.target.value})}
-                        className="flex-1 px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                        value={templateName}
+                        onChange={(e) => setTemplateName(e.target.value)}
+                        placeholder="Template Name"
+                        className="flex-1 px-3 py-1.5 text-sm rounded-lg border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
                       />
+                      <button
+                        onClick={handleCreateTemplate}
+                        disabled={saving || !templateName.trim()}
+                        className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
+                      >
+                        <Save size={16} />
+                      </button>
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Footer Text</label>
-                    <textarea
-                      value={customConfig.footerText}
-                      onChange={(e) => setCustomConfig({...customConfig, footerText: e.target.value})}
-                      className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all h-24 resize-none"
-                    />
+                  {/* Saved Templates Section */}
+                  {savedTemplates.length > 0 && (
+                    <div className="space-y-2">
+                       <h3 className="text-sm font-bold text-zinc-900 dark:text-white mb-2">Saved Layouts</h3>
+                       <div className="grid gap-2">
+                         {savedTemplates.map(t => (
+                           <div key={t.id} className="flex items-center gap-2 group">
+                             <button
+                               onClick={() => handleLoadTemplate(t)}
+                               className="flex-1 text-left px-3 py-2 rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-sm font-medium hover:border-indigo-500 hover:text-indigo-600 transition-all flex items-center gap-2"
+                             >
+                               <FolderOpen size={14} className="text-zinc-400 group-hover:text-indigo-500" />
+                               {t.name}
+                             </button>
+                             <button
+                               onClick={() => handleDeleteTemplate(t.id)}
+                               className="p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors"
+                             >
+                               <Trash2 size={14} />
+                             </button>
+                           </div>
+                         ))}
+                       </div>
+                    </div>
+                  )}
+
+                  <hr className="border-zinc-100 dark:border-zinc-700" />
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Base Layout</label>
+                      <select
+                        value={customConfig.baseLayout}
+                        onChange={(e) => setCustomConfig({...customConfig, baseLayout: e.target.value as any})}
+                        className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                      >
+                        <option value="modern">Modern</option>
+                        <option value="classic">Classic</option>
+                        <option value="minimalist">Minimalist</option>
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Logo URL (Optional)</label>
+                      <input
+                        type="text"
+                        value={customConfig.logoUrl}
+                        onChange={(e) => setCustomConfig({...customConfig, logoUrl: e.target.value})}
+                        placeholder="https://example.com/logo.png"
+                        className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Header Text</label>
+                      <input
+                        type="text"
+                        value={customConfig.headerText}
+                        onChange={(e) => setCustomConfig({...customConfig, headerText: e.target.value})}
+                        className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Business Name</label>
+                      <input
+                        type="text"
+                        value={customConfig.businessName}
+                        onChange={(e) => setCustomConfig({...customConfig, businessName: e.target.value})}
+                        className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Theme Color</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="color"
+                          value={customConfig.themeColor}
+                          onChange={(e) => setCustomConfig({...customConfig, themeColor: e.target.value})}
+                          className="h-10 w-10 min-w-[40px] rounded cursor-pointer border-none bg-transparent"
+                        />
+                        <input
+                          type="text"
+                          value={customConfig.themeColor}
+                          onChange={(e) => setCustomConfig({...customConfig, themeColor: e.target.value})}
+                          className="flex-1 px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Footer Text</label>
+                      <textarea
+                        value={customConfig.footerText}
+                        onChange={(e) => setCustomConfig({...customConfig, footerText: e.target.value})}
+                        className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all h-24 resize-none"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
