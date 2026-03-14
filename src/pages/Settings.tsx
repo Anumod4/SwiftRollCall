@@ -297,6 +297,7 @@ export function Settings() {
             <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Provider</label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
+                { id: 'manual', name: 'Manual WhatsApp Web', desc: 'Opens WhatsApp Web in a new tab' },
                 { id: 'meta', name: 'Meta WhatsApp API', desc: 'Official Cloud API (Recommended)' },
                 { id: 'rocketsender', name: 'RocketSender.co', desc: 'Third-party automation tool' }
               ].map((p) => (
@@ -305,8 +306,8 @@ export function Settings() {
                   onClick={() => handleUpdateWhatsApp({ whatsappProvider: p.id as any })}
                   className={clsx(
                     "px-4 py-3 rounded-xl border-2 transition-all text-left",
-                    settings?.whatsappProvider === p.id
-                      ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30"
+                    (settings?.whatsappProvider || 'manual') === p.id
+                      ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-900/30"
                       : "border-zinc-100 dark:border-zinc-700 hover:border-zinc-200 dark:hover:border-zinc-600"
                   )}
                 >

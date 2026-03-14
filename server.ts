@@ -44,7 +44,7 @@ async function sendNotification(contactInfo: string, subject: string, body: stri
       config[row.key as string] = row.value as string;
     });
 
-    const provider = config.whatsappProvider || 'meta';
+    const provider = config.whatsappProvider || 'manual';
     const cleanNumber = contactInfo.replace(/\D/g, '');
 
     if (provider === 'rocketsender') {
@@ -194,8 +194,10 @@ async function setupDatabase() {
     );
     
     INSERT OR IGNORE INTO settings (key, value) VALUES ('receiptTemplate', 'modern');
-    INSERT OR IGNORE INTO settings (key, value) VALUES ('whatsappProvider', 'meta');
+  `);
+  await db.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('whatsappProvider', 'manual')");
 
+  await db.executeMultiple(`
     -- Indices for performance
     CREATE INDEX IF NOT EXISTS idx_students_classId ON students(classId);
     CREATE INDEX IF NOT EXISTS idx_attendance_studentId ON attendance(studentId);
