@@ -680,10 +680,22 @@ app.get('/api/dashboard/stats', authenticateToken, async (req, res) => {
       totalClasses,
       monthlyRevenue,
       attendanceRate,
-      recentPayments: recentPaymentsResult.rows,
-      revenueByMonth: revenueByMonthResult.rows.reverse(),
-      attendanceByDay: attendanceByDayResult.rows,
-      studentGrowth: studentGrowthResult.rows.reverse()
+      recentPayments: recentPaymentsResult.rows.map((r: any) => ({
+        ...r,
+        amount: Number(r.amount)
+      })),
+      revenueByMonth: revenueByMonthResult.rows.map((r: any) => ({
+        month: r.month,
+        amount: Number(r.amount)
+      })).reverse(),
+      attendanceByDay: attendanceByDayResult.rows.map((r: any) => ({
+        date: r.date,
+        rate: Number(r.rate)
+      })),
+      studentGrowth: studentGrowthResult.rows.map((r: any) => ({
+        month: r.month,
+        count: Number(r.count)
+      })).reverse()
     });
   } catch (error) {
     console.error('Dashboard Stats Error:', error);
@@ -737,7 +749,7 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
+  app.listen(Number(PORT), '0.0.0.0', () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
 }

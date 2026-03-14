@@ -35,7 +35,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const isDark = user ? user.darkMode : window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const isDark = user ? (!!(user as any).darkMode) : window.matchMedia('(prefers-color-scheme: dark)').matches;
     if (isDark) {
       document.documentElement.classList.add('dark');
     } else {

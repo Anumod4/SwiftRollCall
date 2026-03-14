@@ -145,7 +145,7 @@ export function Dashboard() {
         >
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h2 className="text-xl font-bold text-zinc-900 dark:text-white">Revenue Analysis</h2>
+              <h2 className="text-xl font-bold text-zinc-900 dark:text-white">Fee Analysis</h2>
               <p className="text-sm text-zinc-500 dark:text-zinc-400">Monthly breakdown of your earnings</p>
             </div>
             <select className="bg-zinc-50 dark:bg-zinc-700 border-none rounded-xl text-sm font-medium px-4 py-2 outline-none">

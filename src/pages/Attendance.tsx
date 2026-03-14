@@ -123,10 +123,19 @@ export function Attendance() {
 
     // Notification logic
     const isNewOrChanged = !existing || existing.status !== status;
+    const hasAutomatedProvider = settings?.whatsappProvider === 'rocketsender' || settings?.whatsappProvider === 'meta';
+    
+    let waWindow: Window | null = null;
+    if (isNewOrChanged && autoNotify && !hasAutomatedProvider) {
+      const student = students.find(s => s.id === studentId);
+      if (student && student.contactInfo) {
+        waWindow = window.open('', '_blank');
+      }
+    }
+
     if (isNewOrChanged && autoNotify) {
       const student = students.find(s => s.id === studentId);
       if (student && student.contactInfo) {
-        const hasAutomatedProvider = settings?.whatsappProvider === 'rocketsender' || settings?.whatsappProvider === 'meta';
         if (!hasAutomatedProvider) {
           const cleanNumber = student.contactInfo.replace(/\D/g, '');
           const displayDate = format(date, 'MMM d, yyyy');
@@ -136,9 +145,10 @@ export function Attendance() {
           else if (status === 'Absent') text = `Hi, attendance for ${student.name}${classPart} on ${displayDate} has been marked as Absent.`;
           else if (status === 'Cancelled') text = `Hi, the class for ${student.name}${classPart} on ${displayDate} has been cancelled.`;
           
-          if (cleanNumber && text) {
-            const url = `https://wa.me/${cleanNumber}?text=${encodeURIComponent(text)}`;
-            window.open(url, '_blank');
+          if (cleanNumber && text && waWindow) {
+            waWindow.location.href = `https://wa.me/${cleanNumber}?text=${encodeURIComponent(text)}`;
+          } else if (waWindow) {
+            waWindow.close();
           }
         }
       }

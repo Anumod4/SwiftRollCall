@@ -133,19 +133,19 @@ export function Settings() {
             onClick={toggleDarkMode}
             className={clsx(
               "relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2",
-              user?.darkMode ? "bg-indigo-600" : "bg-zinc-200"
+              !!(user as any)?.darkMode ? "bg-indigo-600" : "bg-zinc-200"
             )}
           >
             <span
               className={clsx(
                 "pointer-events-none relative inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
-                user?.darkMode ? "translate-x-5" : "translate-x-0"
+                !!(user as any)?.darkMode ? "translate-x-5" : "translate-x-0"
               )}
             >
               <span
                 className={clsx(
                   "absolute inset-0 flex h-full w-full items-center justify-center transition-opacity",
-                  user?.darkMode ? "opacity-0 duration-100 ease-out" : "opacity-100 duration-200 ease-in"
+                  !!(user as any)?.darkMode ? "opacity-0 duration-100 ease-out" : "opacity-100 duration-200 ease-in"
                 )}
               >
                 <Sun className="h-3 w-3 text-zinc-400" />
@@ -153,7 +153,7 @@ export function Settings() {
               <span
                 className={clsx(
                   "absolute inset-0 flex h-full w-full items-center justify-center transition-opacity",
-                  user?.darkMode ? "opacity-100 duration-200 ease-in" : "opacity-0 duration-100 ease-out"
+                  !!(user as any)?.darkMode ? "opacity-100 duration-200 ease-in" : "opacity-0 duration-100 ease-out"
                 )}
               >
                 <Moon className="h-3 w-3 text-indigo-600" />
