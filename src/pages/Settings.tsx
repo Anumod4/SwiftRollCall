@@ -139,7 +139,7 @@ export function Settings() {
             <span
               className={clsx(
                 "pointer-events-none relative inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
-                user?.darkMode ? "tranzinc-x-5" : "tranzinc-x-0"
+                user?.darkMode ? "translate-x-5" : "translate-x-0"
               )}
             >
               <span

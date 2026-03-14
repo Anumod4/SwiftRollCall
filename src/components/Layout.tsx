@@ -28,7 +28,7 @@ export function Layout() {
       {/* Mobile Header */}
       <div className="md:hidden bg-indigo-600 dark:bg-indigo-900 text-white p-4 flex justify-between items-center shadow-md print:hidden z-20 relative">
         <div className="flex items-center gap-2">
-          <img src="/assets/logo.png" alt="Logo" className="w-8 h-8 rounded-lg bg-white p-0.5" />
+          <img src="/assets/logo.png" alt="Logo" className="w-24 h-24 object-contain" />
           <h1 className="text-xl font-bold">SwiftRollCall</h1>
         </div>
         <button onClick={handleLogout} className="text-indigo-100 hover:text-white transition-colors">
@@ -60,8 +60,8 @@ export function Layout() {
       {/* Desktop Sidebar */}
       <div className="hidden md:flex w-64 bg-indigo-800 dark:bg-zinc-900 text-white flex-col shadow-xl print:hidden sticky top-0 h-screen transition-colors duration-200">
         <div className="p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <img src="/assets/logo.png" alt="Logo" className="w-10 h-10 rounded-xl bg-white p-1 shadow-inner" />
+          <div className="flex flex-col items-center mb-6">
+            <img src="/assets/logo.png" alt="Logo" className="w-32 h-32 object-contain" />
             <h1 className="text-2xl font-bold tracking-tight">SwiftRollCall</h1>
           </div>
           <p className="text-indigo-200 text-sm mt-1">Manage your business</p>

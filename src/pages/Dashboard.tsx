@@ -52,33 +52,25 @@ export function Dashboard() {
       title: 'Total Students', 
       value: stats?.totalStudents || 0, 
       icon: Users, 
-      color: 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400',
-      trend: '+12%',
-      isPositive: true
+      color: 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400'
     },
     { 
       title: 'Total Classes', 
       value: stats?.totalClasses || 0, 
       icon: GraduationCap, 
-      color: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400',
-      trend: '+5%',
-      isPositive: true
+      color: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400'
     },
     { 
       title: 'Current Revenue', 
       value: `$${(stats?.monthlyRevenue || 0).toLocaleString()}`, 
       icon: DollarSign, 
-      color: 'bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400',
-      trend: '+18.2%',
-      isPositive: true
+      color: 'bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400'
     },
     { 
       title: 'Attendance Rate', 
       value: `${(stats?.attendanceRate || 0).toFixed(1)}%`, 
       icon: Activity, 
-      color: 'bg-rose-50 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400',
-      trend: '-2.4%',
-      isPositive: false
+      color: 'bg-rose-50 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400'
     }
   ];
 
@@ -137,15 +129,6 @@ export function Dashboard() {
               <div className={clsx("p-3 rounded-xl transition-transform group-hover:scale-110", card.color)}>
                 <card.icon size={24} />
               </div>
-              <div className={clsx(
-                "flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-lg",
-                card.isPositive 
-                  ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400" 
-                  : "bg-rose-50 text-rose-600 dark:bg-rose-900/20 dark:text-rose-400"
-              )}>
-                {card.isPositive ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
-                {card.trend}
-              </div>
             </div>
             <span className="text-zinc-500 dark:text-zinc-400 text-sm font-medium">{card.title}</span>
             <span className="text-2xl font-bold text-zinc-900 dark:text-white mt-1">{card.value}</span>
@@ -192,7 +175,7 @@ export function Dashboard() {
                       />
                     </motion.div>
                     {/* Tooltip on hover */}
-                    <div className="absolute -top-12 left-1/2 -tranzinc-x-1/2 bg-zinc-900 text-white text-xs font-bold py-1.5 px-3 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none">
+                    <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-zinc-900 text-white text-xs font-bold py-1.5 px-3 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none">
                       ${data.amount.toLocaleString()}
                     </div>
                   </div>
@@ -254,7 +237,7 @@ export function Dashboard() {
                 <div className="bg-white h-full transition-all duration-1000" style={{ width: '84%' }}></div>
               </div>
             </div>
-            <div className="absolute top-0 right-0 p-2 opacity-20 transform tranzinc-x-2 -tranzinc-y-2 group-hover:rotate-12 transition-transform">
+            <div className="absolute top-0 right-0 p-2 opacity-20 transform translate-x-2 -translate-y-2 group-hover:rotate-12 transition-transform">
               <TrendingUp size={64} />
             </div>
           </div>
