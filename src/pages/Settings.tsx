@@ -298,8 +298,7 @@ export function Settings() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
                 { id: 'manual', name: 'Manual WhatsApp Web', desc: 'Opens WhatsApp Web in a new tab' },
-                { id: 'meta', name: 'Meta WhatsApp API', desc: 'Official Cloud API (Recommended)' },
-                { id: 'rocketsender', name: 'RocketSender.co', desc: 'Third-party automation tool' }
+                { id: 'meta', name: 'Meta WhatsApp API', desc: 'Official Cloud API (Recommended)' }
               ].map((p) => (
                 <button
                   key={p.id}
@@ -318,32 +317,7 @@ export function Settings() {
             </div>
           </div>
 
-          {settings?.whatsappProvider === 'rocketsender' ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2">
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">RocketSender API Key</label>
-                <input
-                  type="password"
-                  value={settings.rocketSenderApiKey || ''}
-                  onChange={(e) => setSettings({...settings, rocketSenderApiKey: e.target.value})}
-                  onBlur={() => handleUpdateWhatsApp({ rocketSenderApiKey: settings.rocketSenderApiKey })}
-                  className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                  placeholder="Enter your API Key"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Device ID</label>
-                <input
-                  type="text"
-                  value={settings.rocketSenderDeviceId || ''}
-                  onChange={(e) => setSettings({...settings, rocketSenderDeviceId: e.target.value})}
-                  onBlur={() => handleUpdateWhatsApp({ rocketSenderDeviceId: settings.rocketSenderDeviceId })}
-                  className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                  placeholder="Enter your Device ID"
-                />
-              </div>
-            </div>
-          ) : (
+          {settings?.whatsappProvider === 'meta' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2">
               <div>
                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Phone Number ID</label>
