@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { Student, Attendance as AttendanceType, AppSettings } from '../types';
+import { getWhatsAppUrl } from '../utils/whatsapp';
 import { 
   format, 
   startOfWeek, 
@@ -160,7 +161,7 @@ export function Attendance() {
           else if (status === 'Cancelled') text = `Hi, the class for ${student.name}${classPart} on ${displayDate} has been cancelled.`;
           
           if (cleanNumber && text && waWindow) {
-            waWindow.location.href = `https://web.whatsapp.com/send?phone=${cleanNumber}&text=${encodeURIComponent(text)}`;
+          waWindow.location.href = getWhatsAppUrl(cleanNumber, text);
           } else if (waWindow) {
             waWindow.close();
           }

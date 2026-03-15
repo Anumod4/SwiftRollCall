@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../services/api';
 import { Student, Payment, AppSettings } from '../types';
+import { getWhatsAppUrl } from '../utils/whatsapp';
 import { DollarSign, FileText, Bell, Plus, Download, Printer, Share2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ReceiptTemplate } from '../components/ReceiptTemplate';
@@ -136,7 +137,7 @@ export function Fees() {
                      `*Receipt No:* ${response.receiptNumber}\n` +
                      `${notes ? `*Notes:* ${notes}\n` : ''}\n` +
                      `Thank you for your payment! You can download the official PDF receipt from our portal.`;
-        waWindow.location.href = `https://web.whatsapp.com/send?phone=${cleanNumber}&text=${encodeURIComponent(text)}`;
+        waWindow.location.href = getWhatsAppUrl(cleanNumber, text);
       } else if (waWindow) {
         waWindow.close();
       }
@@ -167,7 +168,7 @@ export function Fees() {
                    `*Amount Due:* $${amount}\n` +
                    `*Due Date:* ${displayDate}\n\n` +
                    `Please ignore if already paid. Thank you!`;
-      window.open(`https://web.whatsapp.com/send?phone=${cleanNumber}&text=${encodeURIComponent(text)}`, '_blank');
+      window.open(getWhatsAppUrl(cleanNumber, text), '_blank');
     }
 
     try {
