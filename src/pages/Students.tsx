@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { Student, Class } from '../types';
-import { Plus, Edit2, Trash2, Phone, User, BookOpen, Filter, RotateCcw } from 'lucide-react';
+import { Plus, Edit2, Trash2, Phone, User, BookOpen, Filter, RotateCcw, Mail } from 'lucide-react';
 
 export function Students() {
   const [students, setStudents] = useState<Student[]>([]);
@@ -20,6 +20,7 @@ export function Students() {
     parentName: '',
     contactInfo: '',
     subjects: '',
+    email: '',
     classId: undefined as number | undefined,
     rateType: 'hourly' as 'hourly' | 'monthly',
     rateAmount: 0,
@@ -69,6 +70,7 @@ export function Students() {
         parentName: '',
         contactInfo: '',
         subjects: '',
+        email: '',
         classId: undefined,
         rateType: 'hourly',
         rateAmount: 0,
@@ -99,6 +101,7 @@ export function Students() {
       classId: student.classId,
       rateType: student.rateType,
       rateAmount: student.rateAmount,
+      email: student.email || '',
     });
     setIsModalOpen(true);
   };
@@ -130,6 +133,7 @@ export function Students() {
               parentName: '',
               contactInfo: '',
               subjects: '',
+              email: '',
               classId: undefined,
               rateType: 'hourly',
               rateAmount: 0,
@@ -305,6 +309,16 @@ export function Students() {
                   onChange={(e) => setFormData({ ...formData, subjects: e.target.value })}
                   className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
                   placeholder="e.g. Math, Physics"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Email Address (Optional)</label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                  placeholder="e.g. alex@example.com"
                 />
               </div>
               <div>

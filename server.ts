@@ -48,23 +48,24 @@ const authenticateToken = (req: any, res: any, next: any) => {
   });
 };
 
-async function sendNotification(contactInfo: string, subject: string, body: string) {
+async function sendNotification(recipient: { phone: string; email?: string | null }, subject: string, body: string) {
   try {
-    const result = await db.execute('SELECT key, value FROM settings WHERE key IN ("whatsappPhoneNumberId", "whatsappAccessToken", "whatsappProvider", "rocketSenderApiKey", "rocketSenderDeviceId")');
+    const result = await db.execute('SELECT key, value FROM settings WHERE key IN ("whatsappPhoneNumberId", "whatsappAccessToken", "whatsappProvider", "enableEmailNotifications", "resendApiKey", "fromEmail")');
     const config: Record<string, string> = {};
     result.rows.forEach(row => {
       config[row.key as string] = row.value as string;
     });
 
+    // 1. WhatsApp Notification
     const provider = config.whatsappProvider || 'manual';
-    const cleanNumber = contactInfo.replace(/\D/g, '');
+    const cleanNumber = recipient.phone.replace(/\D/g, '');
 
     if (provider === 'rocketsender') {
       const apiKey = config.rocketSenderApiKey;
       const deviceId = config.rocketSenderDeviceId;
 
       if (!apiKey || !deviceId) {
-        console.log(`[SIMULATED ROCKETSENDER] To: ${contactInfo} | Message: ${body}`);
+        console.log(`[SIMULATED ROCKETSENDER] To: ${recipient.phone} | Message: ${body}`);
         return;
       }
 
@@ -93,30 +94,29 @@ async function sendNotification(contactInfo: string, subject: string, body: stri
       const accessToken = config.whatsappAccessToken;
 
       if (!phoneNumberId || !accessToken) {
-        console.log(`[SIMULATED META WHATSAPP] To: ${contactInfo} | Message: ${body}`);
+        console.log(`[SIMULATED META WHATSAPP] To: ${recipient.phone} | Message: ${body}`);
         console.log('Configure WhatsApp API in Settings to send real messages.');
-        return;
-      }
-
-      const response = await fetch(`https://graph.facebook.com/v18.0/${phoneNumberId}/messages`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messaging_product: 'whatsapp',
-          to: cleanNumber,
-          type: 'text',
-          text: { body }
-        })
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        console.error('Meta WhatsApp API Error:', data);
       } else {
-        console.log(`Successfully sent Meta WhatsApp to ${cleanNumber}`);
+        const response = await fetch(`https://graph.facebook.com/v18.0/${phoneNumberId}/messages`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            messaging_product: 'whatsapp',
+            to: cleanNumber,
+            type: 'text',
+            text: { body }
+          })
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          console.error('Meta WhatsApp API Error:', data);
+        } else {
+          console.log(`Successfully sent Meta WhatsApp to ${cleanNumber}`);
+        }
       }
     }
   } catch (error) {
@@ -170,9 +170,17 @@ async function setupDatabase() {
       classId INTEGER,
       rateType TEXT NOT NULL CHECK(rateType IN ('hourly', 'monthly')),
       rateAmount REAL NOT NULL,
+      email TEXT,
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY(classId) REFERENCES classes(id)
     );
+
+    -- Ensure email column exists (migration)
+    try {
+      await db.execute("ALTER TABLE students ADD COLUMN email TEXT");
+    } catch (e) {
+      // Column might already exist
+    }
 
     CREATE TABLE IF NOT EXISTS attendance (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -208,6 +216,7 @@ async function setupDatabase() {
     INSERT OR IGNORE INTO settings (key, value) VALUES ('receiptTemplate', 'modern');
   `);
   await db.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('whatsappProvider', 'manual')");
+  await db.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('enableEmailNotifications', 'false')");
 
   await db.executeMultiple(`
     -- Indices for performance
@@ -607,7 +616,7 @@ app.post('/api/attendance', async (req, res) => {
       else if (status === 'Cancelled') text = `Hi, the class for ${student.name}${classPart} on ${displayDate} has been cancelled.`;
 
       if (text) {
-        await sendNotification(student.contactInfo as string, 'Attendance Update', text);
+        await sendNotification({ phone: student.contactInfo as string, email: student.email as string }, 'Attendance Update', text);
       }
     }
 
@@ -680,7 +689,7 @@ app.post('/api/payments', async (req, res) => {
                    `${notes ? `*Notes:* ${notes}\n` : ''}\n` +
                    `Thank you for your payment! You can download the official PDF receipt from our portal.`;
       
-      await sendNotification(student.contactInfo as string, 'Payment Receipt', text);
+      await sendNotification({ phone: student.contactInfo as string, email: student.email as string }, 'Payment Receipt', text);
     }
 
     res.json({ id: Number(result.lastInsertRowid), receiptNumber });
@@ -902,7 +911,7 @@ app.post('/api/notifications/remind', authenticateToken, async (req, res) => {
                    `*Due Date:* ${displayDate}\n\n` +
                    `Please ignore if already paid. Thank you!`;
       
-      await sendNotification(student.contactInfo as string, 'Payment Reminder', text);
+      await sendNotification({ phone: student.contactInfo as string, email: student.email as string }, 'Payment Reminder', text);
     }
     res.json({ success: true });
   } catch (error) {

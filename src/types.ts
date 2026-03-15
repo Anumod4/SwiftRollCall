@@ -19,6 +19,7 @@ export interface Student {
   parentName: string;
   contactInfo: string;
   subjects: string;
+  email?: string;
   classId?: number;
   className?: string;
   rateType: 'hourly' | 'monthly';
@@ -60,6 +61,9 @@ export interface AppSettings {
   whatsappAccessToken?: string;
   rocketSenderApiKey?: string;
   rocketSenderDeviceId?: string;
+  enableEmailNotifications?: boolean;
+  resendApiKey?: string;
+  fromEmail?: string;
 }
 export interface DashboardStats {
   totalStudents: number;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { AppSettings, CustomReceiptConfig, ReceiptTemplate as ReceiptTemplateType } from '../types';
-import { Check, Settings as SettingsIcon, Edit2, X, MessageSquare, Moon, Sun, FileText, Save, Trash2, FolderOpen } from 'lucide-react';
+import { Check, Settings as SettingsIcon, Edit2, X, MessageSquare, Moon, Sun, FileText, Save, Trash2, FolderOpen, Mail } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import clsx from 'clsx';
 import { ReceiptTemplate } from '../components/ReceiptTemplate';
@@ -351,6 +351,67 @@ export function Settings() {
               If no provider is configured, the app will continue to open WhatsApp Web/App manually.
             </p>
           </div>
+        </div>
+      </div>
+
+      {/* Email Configuration Section */}
+      <div className="bg-white dark:bg-zinc-800 rounded-3xl p-8 border border-zinc-100 dark:border-zinc-700 shadow-sm">
+        <div className="flex items-center gap-4 mb-8">
+          <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform">
+            <Mail size={24} />
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold text-zinc-900 dark:text-white">Email Configuration</h2>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">Send notifications via email using Resend</p>
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          <div className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl border border-zinc-100 dark:border-zinc-800">
+            <div>
+              <div className="font-bold text-zinc-900 dark:text-white">Enable Email Notifications</div>
+              <div className="text-xs text-zinc-500">Sends the same notification via email to students</div>
+            </div>
+            <button
+              onClick={() => handleUpdateWhatsApp({ enableEmailNotifications: !(settings?.enableEmailNotifications) })}
+              className={clsx(
+                "w-12 h-6 rounded-full transition-colors relative",
+                settings?.enableEmailNotifications ? "bg-emerald-500" : "bg-zinc-300 dark:bg-zinc-600"
+              )}
+            >
+              <div className={clsx(
+                "absolute top-1 w-4 h-4 bg-white rounded-full transition-all",
+                settings?.enableEmailNotifications ? "left-7" : "left-1"
+              )} />
+            </button>
+          </div>
+
+          {settings?.enableEmailNotifications && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2">
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Resend API Key</label>
+                <input
+                  type="password"
+                  value={settings?.resendApiKey || ''}
+                  onChange={(e) => setSettings(settings ? {...settings, resendApiKey: e.target.value} : null)}
+                  onBlur={() => handleUpdateWhatsApp({ resendApiKey: settings?.resendApiKey })}
+                  className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                  placeholder="re_..."
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">From Email</label>
+                <input
+                  type="text"
+                  value={settings?.fromEmail || ''}
+                  onChange={(e) => setSettings(settings ? {...settings, fromEmail: e.target.value} : null)}
+                  onBlur={() => handleUpdateWhatsApp({ fromEmail: settings?.fromEmail })}
+                  className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                  placeholder="onboarding@resend.dev"
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
