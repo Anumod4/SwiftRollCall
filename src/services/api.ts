@@ -167,8 +167,9 @@ export const api = {
   },
   
   // Dashboard
-  getDashboardStats: async (): Promise<DashboardStats> => {
-    const res = await fetch('/api/dashboard/stats', { headers: getHeaders() });
+  getDashboardStats: async (params?: { classId?: number | ''; period?: 'weekly' | 'monthly' }): Promise<DashboardStats> => {
+    const query = new URLSearchParams(params as any).toString();
+    const res = await fetch(`/api/dashboard/stats?${query}`, { headers: getHeaders() });
     return handleResponse(res);
   },
 

@@ -680,12 +680,16 @@ app.post('/api/payments', async (req, res) => {
 
 // Dashboard Stats
 app.get('/api/dashboard/stats', authenticateToken, async (req, res) => {
+  const classId = req.query.classId ? Number(req.query.classId) : null;
+  const period = (req.query.period as string) || 'weekly';
+  const days = period === 'monthly' ? 30 : 7;
+  
   try {
-    // Parallelize all count and aggregate queries
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = (now.getMonth() + 1).toString().padStart(2, '0');
     const currentMonthStr = `${currentYear}-${currentMonth}`;
+    const todayStr = format(now, 'yyyy-MM-dd');
 
     const [
       totalStudentsResult,
@@ -695,7 +699,9 @@ app.get('/api/dashboard/stats', authenticateToken, async (req, res) => {
       recentPaymentsResult,
       revenueByMonthResult,
       attendanceByDayResult,
-      studentGrowthResult
+      studentGrowthResult,
+      unpaidStudentsResult,
+      missingAttendanceResult
     ] = await Promise.all([
       db.execute('SELECT COUNT(*) as count FROM students'),
       db.execute('SELECT COUNT(*) as count FROM classes'),
@@ -703,13 +709,18 @@ app.get('/api/dashboard/stats', authenticateToken, async (req, res) => {
         sql: "SELECT SUM(amount) as total FROM payments WHERE date LIKE ?",
         args: [`${currentMonthStr}%`]
       }),
-      db.execute(`
-        SELECT 
-          COUNT(*) as total,
-          SUM(CASE WHEN status = 'Present' THEN 1 ELSE 0 END) as present
-        FROM attendance
-        WHERE date >= date('now', '-30 days')
-      `),
+      db.execute({
+        sql: `
+          SELECT 
+            COUNT(*) as total,
+            SUM(CASE WHEN status = 'Present' THEN 1 ELSE 0 END) as present
+          FROM attendance a
+          JOIN students s ON a.studentId = s.id
+          WHERE a.date >= date('now', ?)
+          AND (? IS NULL OR s.classId = ?)
+        `,
+        args: [`-${days} days`, classId || null, classId || null]
+      }),
       db.execute(`
         SELECT p.*, s.name as studentName 
         FROM payments p 
@@ -724,22 +735,52 @@ app.get('/api/dashboard/stats', authenticateToken, async (req, res) => {
         ORDER BY month DESC 
         LIMIT 6
       `),
-      db.execute(`
-        SELECT 
-          date,
-          (SUM(CASE WHEN status = 'Present' THEN 1 ELSE 0 END) * 100.0 / COUNT(*)) as rate
-        FROM attendance 
-        WHERE date >= date('now', '-7 days')
-        GROUP BY date 
-        ORDER BY date ASC
-      `),
+      db.execute({
+        sql: `
+          SELECT 
+            date,
+            (SUM(CASE WHEN status = 'Present' THEN 1 ELSE 0 END) * 100.0 / COUNT(*)) as rate
+          FROM attendance a
+          JOIN students s ON a.studentId = s.id
+          WHERE a.date >= date('now', ?)
+          AND (? IS NULL OR s.classId = ?)
+          GROUP BY date 
+          ORDER BY date ASC
+        `,
+        args: [`-${days} days`, classId || null, classId || null]
+      }),
       db.execute(`
         SELECT substr(createdAt, 1, 7) as month, COUNT(*) as count 
         FROM students 
         GROUP BY month 
         ORDER BY month DESC 
         LIMIT 6
-      `)
+      `),
+      db.execute({
+        sql: `
+          SELECT COUNT(*) as count 
+          FROM students s 
+          WHERE NOT EXISTS (
+            SELECT 1 FROM payments p 
+            WHERE p.studentId = s.id 
+            AND p.date LIKE ?
+          )
+        `,
+        args: [`${currentMonthStr}%`]
+      }),
+      db.execute({
+        sql: `
+          SELECT COUNT(*) as count 
+          FROM classes c 
+          WHERE NOT EXISTS (
+            SELECT 1 FROM attendance a 
+            JOIN students s ON a.studentId = s.id
+            WHERE s.classId = c.id
+            AND a.date = ?
+          )
+        `,
+        args: [todayStr]
+      })
     ]);
 
     const totalStudents = Number(totalStudentsResult.rows[0]?.count || 0);
@@ -750,11 +791,14 @@ app.get('/api/dashboard/stats', authenticateToken, async (req, res) => {
     const attendPresent = Number(attendanceStatsResult.rows[0]?.present || 0);
     const attendanceRate = attendTotal > 0 ? (attendPresent / attendTotal) * 100 : 0;
 
+    const pendingActions = Number(unpaidStudentsResult.rows[0]?.count || 0) + Number(missingAttendanceResult.rows[0]?.count || 0);
+
     res.json({
       totalStudents,
       totalClasses,
       monthlyRevenue,
       attendanceRate,
+      pendingActions,
       recentPayments: recentPaymentsResult.rows.map((r: any) => ({
         ...r,
         amount: Number(r.amount)

@@ -70,6 +70,7 @@ export interface DashboardStats {
   revenueByMonth: { month: string; amount: number }[];
   attendanceByDay: { date: string; rate: number }[];
   studentGrowth: { month: string; count: number }[];
+  pendingActions: number;
 }
 export interface ReceiptTemplate {
   id: number;

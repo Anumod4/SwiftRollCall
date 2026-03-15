@@ -12,8 +12,11 @@ import {
   ArrowDownRight,
   MoreVertical,
   CheckCircle2,
-  Clock
+  Clock,
+  Filter,
+  ChevronDown
 } from 'lucide-react';
+import { Class } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { format } from 'date-fns';
 import { motion } from 'motion/react';
@@ -22,15 +25,34 @@ import clsx from 'clsx';
 export function Dashboard() {
   const { user } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [classes, setClasses] = useState<Class[]>([]);
+  const [selectedClassId, setSelectedClassId] = useState<number | ''>('');
+  const [period, setPeriod] = useState<'weekly' | 'monthly'>('weekly');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadDashboard();
+    loadClasses();
   }, []);
+
+  useEffect(() => {
+    loadDashboard();
+  }, [selectedClassId, period]);
+
+  const loadClasses = async () => {
+    try {
+      const data = await api.getClasses();
+      setClasses(data);
+    } catch (error) {
+      console.error('Failed to load classes', error);
+    }
+  };
 
   const loadDashboard = async () => {
     try {
-      const data = await api.getDashboardStats();
+      const data = await api.getDashboardStats({ 
+        classId: selectedClassId, 
+        period 
+      });
       setStats(data);
     } catch (error) {
       console.error('Failed to load dashboard', error);
@@ -159,13 +181,13 @@ export function Dashboard() {
               const maxAmount = Math.max(...stats.revenueByMonth.map(d => d.amount), 1);
               const height = (data.amount / maxAmount) * 100;
               return (
-                <div key={i} className="flex-1 flex flex-col items-center gap-3 group">
-                  <div className="w-full relative">
+                <div key={i} className="flex-1 flex flex-col items-center gap-3 group h-full justify-end">
+                  <div className="w-full relative h-full flex items-end">
                     <motion.div 
                       initial={{ height: 0 }}
                       animate={{ height: `${height}%` }}
                       transition={{ duration: 1, delay: i * 0.1 }}
-                      className="w-full bg-indigo-600/10 dark:bg-indigo-400/10 rounded-t-xl group-hover:bg-indigo-600/20 dark:group-hover:bg-indigo-400/20 transition-colors relative"
+                      className="w-full bg-indigo-600/10 dark:bg-indigo-400/10 rounded-t-xl group-hover:bg-indigo-600/20 dark:group-hover:bg-indigo-400/20 transition-all relative"
                     >
                       <motion.div 
                         initial={{ height: 0 }}
@@ -175,7 +197,7 @@ export function Dashboard() {
                       />
                     </motion.div>
                     {/* Tooltip on hover */}
-                    <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-zinc-900 text-white text-xs font-bold py-1.5 px-3 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none">
+                    <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-zinc-900 text-white text-xs font-bold py-1.5 px-3 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none shadow-xl border border-white/10">
                       ${data.amount.toLocaleString()}
                     </div>
                   </div>
@@ -264,24 +286,6 @@ export function Dashboard() {
             <button className="w-full mt-6 py-4 rounded-2xl border-2 border-dashed border-zinc-200 dark:border-zinc-700 text-zinc-400 text-xs font-bold uppercase tracking-widest hover:border-indigo-300 hover:text-indigo-500 dark:hover:border-indigo-900 transition-all">
               View All History
             </button>
-            <div className="mt-8 p-6 bg-indigo-600 rounded-[2rem] text-white relative overflow-hidden group shadow-lg shadow-indigo-200 dark:shadow-none">
-              <div className="relative z-10">
-                <p className="text-[10px] font-bold text-indigo-100 uppercase tracking-widest mb-1">Weekly Enrollment Goal</p>
-                <h3 className="text-xl font-black">Target reach: 84%</h3>
-                <div className="mt-4 w-full bg-white/20 rounded-full h-2 overflow-hidden backdrop-blur-sm">
-                  <motion.div 
-                    initial={{ width: 0 }}
-                    animate={{ width: '84%' }}
-                    transition={{ duration: 1.5, ease: "easeOut" }}
-                    className="bg-white h-full" 
-                  />
-                </div>
-                <p className="mt-3 text-[10px] text-indigo-100 font-medium">4 more students to reach your weekly milestone!</p>
-              </div>
-              <div className="absolute top-0 right-0 p-4 opacity-10 transform translate-x-4 -translate-y-4 group-hover:scale-110 transition-transform">
-                <TrendingUp size={120} />
-              </div>
-            </div>
           </div>
         </motion.div>
       </div>
@@ -295,27 +299,57 @@ export function Dashboard() {
           viewport={{ once: true }}
           className="bg-white dark:bg-zinc-800 rounded-3xl p-8 border border-zinc-100 dark:border-zinc-700 shadow-sm"
         >
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
             <h2 className="text-xl font-bold text-zinc-900 dark:text-white">Attendance Trend</h2>
-            <div className="flex gap-2">
-              <span className="flex items-center gap-1.5 text-xs text-zinc-500 font-medium">
-                <div className="w-2 h-2 rounded-full bg-indigo-600"></div>
-                Present
-              </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <select 
+                value={selectedClassId}
+                onChange={(e) => setSelectedClassId(e.target.value === '' ? '' : Number(e.target.value))}
+                className="bg-zinc-50 dark:bg-zinc-700/50 border-none rounded-xl text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-zinc-600 dark:text-zinc-300"
+              >
+                <option value="">All Classes</option>
+                {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+              <div className="flex bg-zinc-100 dark:bg-zinc-700/50 p-1 rounded-xl">
+                <button 
+                  onClick={() => setPeriod('weekly')}
+                  className={clsx(
+                    "px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all",
+                    period === 'weekly' ? "bg-white dark:bg-zinc-600 text-indigo-600 dark:text-indigo-300 shadow-sm" : "text-zinc-400"
+                  )}
+                >
+                  Weekly
+                </button>
+                <button 
+                  onClick={() => setPeriod('monthly')}
+                  className={clsx(
+                    "px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all",
+                    period === 'monthly' ? "bg-white dark:bg-zinc-600 text-indigo-600 dark:text-indigo-300 shadow-sm" : "text-zinc-400"
+                  )}
+                >
+                  Monthly
+                </button>
+              </div>
             </div>
           </div>
           
-          <div className="h-40 flex items-end justify-between gap-1 px-2">
+          <div className="h-40 flex items-end justify-between gap-2 px-2">
             {stats?.attendanceByDay.map((day, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center gap-2 group">
-                <div className="w-full relative flex items-end h-full">
+              <div key={i} className="flex-1 flex flex-col items-center gap-3 group h-full justify-end">
+                <div className="w-full relative h-full flex items-end">
                   <motion.div 
                     initial={{ height: 0 }}
                     animate={{ height: `${day.rate}%` }}
-                    className="w-full bg-indigo-500 dark:bg-indigo-600 rounded-lg group-hover:bg-indigo-400 transition-colors"
-                  />
+                    className="w-full bg-indigo-500 dark:bg-indigo-400/20 rounded-lg group-hover:bg-indigo-400 dark:group-hover:bg-indigo-300 transition-all relative overflow-hidden"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent" />
+                  </motion.div>
+                  {/* Tooltip */}
+                  <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-zinc-900 text-white text-[10px] font-bold py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
+                    {day.rate.toFixed(1)}%
+                  </div>
                 </div>
-                <span className="text-[10px] font-bold text-zinc-400">{format(new Date(day.date), 'EEE')}</span>
+                <span className="text-[10px] font-black text-zinc-400 uppercase">{format(new Date(day.date), 'EEE')}</span>
               </div>
             ))}
             {(!stats?.attendanceByDay || stats.attendanceByDay.length === 0) && (
@@ -355,7 +389,7 @@ export function Dashboard() {
                 </div>
                 <span className="font-semibold text-zinc-700 dark:text-zinc-300">Pending Actions</span>
               </div>
-              <span className="text-lg font-bold text-zinc-900 dark:text-white">3</span>
+              <span className="text-lg font-bold text-zinc-900 dark:text-white">{stats?.pendingActions || 0}</span>
             </div>
           </div>
           
