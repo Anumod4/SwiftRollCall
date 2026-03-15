@@ -3,7 +3,19 @@ import { createServer as createViteServer } from 'vite';
 import { createClient } from '@libsql/client';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { format } from 'date-fns';
+import { 
+  format, 
+  startOfWeek, 
+  endOfWeek, 
+  eachDayOfInterval, 
+  subDays, 
+  startOfMonth, 
+  endOfMonth,
+  addDays,
+  isSameMonth,
+  startOfISOWeek,
+  eachWeekOfInterval
+} from 'date-fns';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -678,11 +690,10 @@ app.post('/api/payments', async (req, res) => {
   }
 });
 
-// Dashboard Stats
 app.get('/api/dashboard/stats', authenticateToken, async (req, res) => {
   const classId = req.query.classId ? Number(req.query.classId) : null;
   const period = (req.query.period as string) || 'weekly';
-  const days = period === 'monthly' ? 30 : 7;
+  const feePeriod = Number(req.query.feePeriod) || 6;
   
   try {
     const now = new Date();
@@ -691,14 +702,78 @@ app.get('/api/dashboard/stats', authenticateToken, async (req, res) => {
     const currentMonthStr = `${currentYear}-${currentMonth}`;
     const todayStr = format(now, 'yyyy-MM-dd');
 
+    // Attendance Date Ranges
+    let attendanceData: { date: string; rate: number }[] = [];
+    if (period === 'weekly') {
+      const start = startOfWeek(now, { weekStartsOn: 0 });
+      const end = endOfWeek(now, { weekStartsOn: 0 });
+      const days = eachDayOfInterval({ start, end });
+      
+      const results = await db.execute({
+        sql: `
+          SELECT 
+            date,
+            (SUM(CASE WHEN status = 'Present' THEN 1 ELSE 0 END) * 100.0 / COUNT(*)) as rate
+          FROM attendance a
+          JOIN students s ON a.studentId = s.id
+          WHERE a.date BETWEEN ? AND ?
+          AND (? IS NULL OR s.classId = ?)
+          GROUP BY date
+        `,
+        args: [format(start, 'yyyy-MM-dd'), format(end, 'yyyy-MM-dd'), classId, classId]
+      });
+
+      attendanceData = days.map(d => {
+        const dateStr = format(d, 'yyyy-MM-dd');
+        const match = results.rows.find(r => r.date === dateStr);
+        return {
+          date: dateStr,
+          rate: match ? Number(match.rate) : 0
+        };
+      });
+    } else {
+      // Monthly view - all weeks in current month
+      const start = startOfMonth(now);
+      const end = endOfMonth(now);
+      const weeks = eachWeekOfInterval({ start, end }, { weekStartsOn: 0 });
+
+      const results = await db.execute({
+        sql: `
+          SELECT 
+            date,
+            (CASE WHEN status = 'Present' THEN 1 ELSE 0 END) as isPresent
+          FROM attendance a
+          JOIN students s ON a.studentId = s.id
+          WHERE a.date BETWEEN ? AND ?
+          AND (? IS NULL OR s.classId = ?)
+        `,
+        args: [format(start, 'yyyy-MM-dd'), format(end, 'yyyy-MM-dd'), classId, classId]
+      });
+
+      attendanceData = weeks.map((wStart, idx) => {
+        const wEnd = endOfWeek(wStart, { weekStartsOn: 0 });
+        const recordsInWeek = results.rows.filter(r => {
+          const d = (r.date as string);
+          return d >= format(wStart, 'yyyy-MM-dd') && d <= format(wEnd, 'yyyy-MM-dd');
+        });
+
+        const total = recordsInWeek.length;
+        const present = recordsInWeek.filter(r => r.isPresent === 1).length;
+
+        return {
+          date: `Week ${idx + 1}`,
+          rate: total > 0 ? (present / total) * 100 : 0
+        };
+      });
+    }
+
     const [
       totalStudentsResult,
       totalClassesResult,
       monthlyRevenueResult,
-      attendanceStatsResult,
+      attendanceRateResult,
       recentPaymentsResult,
       revenueByMonthResult,
-      attendanceByDayResult,
       studentGrowthResult,
       unpaidStudentsResult,
       missingAttendanceResult
@@ -716,10 +791,10 @@ app.get('/api/dashboard/stats', authenticateToken, async (req, res) => {
             SUM(CASE WHEN status = 'Present' THEN 1 ELSE 0 END) as present
           FROM attendance a
           JOIN students s ON a.studentId = s.id
-          WHERE a.date >= date('now', ?)
+          WHERE a.date >= date('now', '-30 days')
           AND (? IS NULL OR s.classId = ?)
         `,
-        args: [`-${days} days`, classId || null, classId || null]
+        args: [classId, classId]
       }),
       db.execute(`
         SELECT p.*, s.name as studentName 
@@ -728,26 +803,15 @@ app.get('/api/dashboard/stats', authenticateToken, async (req, res) => {
         ORDER BY p.date DESC 
         LIMIT 5
       `),
-      db.execute(`
-        SELECT substr(date, 1, 7) as month, SUM(amount) as amount 
-        FROM payments 
-        GROUP BY month 
-        ORDER BY month DESC 
-        LIMIT 6
-      `),
       db.execute({
         sql: `
-          SELECT 
-            date,
-            (SUM(CASE WHEN status = 'Present' THEN 1 ELSE 0 END) * 100.0 / COUNT(*)) as rate
-          FROM attendance a
-          JOIN students s ON a.studentId = s.id
-          WHERE a.date >= date('now', ?)
-          AND (? IS NULL OR s.classId = ?)
-          GROUP BY date 
-          ORDER BY date ASC
+          SELECT substr(date, 1, 7) as month, SUM(amount) as amount 
+          FROM payments 
+          GROUP BY month 
+          ORDER BY month DESC 
+          LIMIT ?
         `,
-        args: [`-${days} days`, classId || null, classId || null]
+        args: [feePeriod]
       }),
       db.execute(`
         SELECT substr(createdAt, 1, 7) as month, COUNT(*) as count 
@@ -787,8 +851,8 @@ app.get('/api/dashboard/stats', authenticateToken, async (req, res) => {
     const totalClasses = Number(totalClassesResult.rows[0]?.count || 0);
     const monthlyRevenue = Number(monthlyRevenueResult.rows[0]?.total || 0);
     
-    const attendTotal = Number(attendanceStatsResult.rows[0]?.total || 0);
-    const attendPresent = Number(attendanceStatsResult.rows[0]?.present || 0);
+    const attendTotal = Number(attendanceRateResult.rows[0]?.total || 0);
+    const attendPresent = Number(attendanceRateResult.rows[0]?.present || 0);
     const attendanceRate = attendTotal > 0 ? (attendPresent / attendTotal) * 100 : 0;
 
     const pendingActions = Number(unpaidStudentsResult.rows[0]?.count || 0) + Number(missingAttendanceResult.rows[0]?.count || 0);
@@ -807,10 +871,7 @@ app.get('/api/dashboard/stats', authenticateToken, async (req, res) => {
         month: r.month,
         amount: Number(r.amount)
       })).reverse(),
-      attendanceByDay: attendanceByDayResult.rows.map((r: any) => ({
-        date: r.date,
-        rate: Number(r.rate)
-      })),
+      attendanceByDay: attendanceData,
       studentGrowth: studentGrowthResult.rows.map((r: any) => ({
         month: r.month,
         count: Number(r.count)

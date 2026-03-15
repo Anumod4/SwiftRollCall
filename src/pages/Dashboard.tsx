@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { DashboardStats } from '../types';
 import { 
@@ -24,10 +25,12 @@ import clsx from 'clsx';
 
 export function Dashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [classes, setClasses] = useState<Class[]>([]);
   const [selectedClassId, setSelectedClassId] = useState<number | ''>('');
   const [period, setPeriod] = useState<'weekly' | 'monthly'>('weekly');
+  const [feePeriod, setFeePeriod] = useState<number>(6);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -36,7 +39,7 @@ export function Dashboard() {
 
   useEffect(() => {
     loadDashboard();
-  }, [selectedClassId, period]);
+  }, [selectedClassId, period, feePeriod]);
 
   const loadClasses = async () => {
     try {
@@ -51,7 +54,8 @@ export function Dashboard() {
     try {
       const data = await api.getDashboardStats({ 
         classId: selectedClassId, 
-        period 
+        period,
+        feePeriod
       });
       setStats(data);
     } catch (error) {
@@ -170,9 +174,14 @@ export function Dashboard() {
               <h2 className="text-xl font-bold text-zinc-900 dark:text-white">Fee Analysis</h2>
               <p className="text-sm text-zinc-500 dark:text-zinc-400">Monthly breakdown of your earnings</p>
             </div>
-            <select className="bg-zinc-50 dark:bg-zinc-700 border-none rounded-xl text-sm font-medium px-4 py-2 outline-none">
-              <option>Last 6 months</option>
-              <option>Last year</option>
+            <select 
+              value={feePeriod}
+              onChange={(e) => setFeePeriod(Number(e.target.value))}
+              className="bg-zinc-50 dark:bg-zinc-700 border-none rounded-xl text-sm font-medium px-4 py-2 outline-none"
+            >
+              <option value={3}>Last 3 months</option>
+              <option value={6}>Last 6 months</option>
+              <option value={12}>Last year</option>
             </select>
           </div>
 
@@ -225,9 +234,6 @@ export function Dashboard() {
                 <h2 className="text-2xl font-black text-zinc-900 dark:text-white tracking-tight">Recent Activity</h2>
                 <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mt-1">Live updates</p>
               </div>
-              <button className="w-10 h-10 rounded-2xl bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-zinc-400 hover:text-indigo-600 transition-colors shadow-sm">
-                <MoreVertical size={20} />
-              </button>
             </div>
 
             <div className="space-y-4">
@@ -283,7 +289,10 @@ export function Dashboard() {
               )}
             </div>
 
-            <button className="w-full mt-6 py-4 rounded-2xl border-2 border-dashed border-zinc-200 dark:border-zinc-700 text-zinc-400 text-xs font-bold uppercase tracking-widest hover:border-indigo-300 hover:text-indigo-500 dark:hover:border-indigo-900 transition-all">
+            <button 
+              onClick={() => navigate('/fees')}
+              className="w-full mt-6 py-4 rounded-2xl border-2 border-dashed border-zinc-200 dark:border-zinc-700 text-zinc-400 text-xs font-bold uppercase tracking-widest hover:border-indigo-300 hover:text-indigo-500 dark:hover:border-indigo-900 transition-all"
+            >
               View All History
             </button>
           </div>
@@ -349,7 +358,9 @@ export function Dashboard() {
                     {day.rate.toFixed(1)}%
                   </div>
                 </div>
-                <span className="text-[10px] font-black text-zinc-400 uppercase">{format(new Date(day.date), 'EEE')}</span>
+                <span className="text-[10px] font-black text-zinc-400 uppercase">
+                  {day.date.startsWith('Week') ? day.date : format(new Date(day.date), 'EEE')}
+                </span>
               </div>
             ))}
             {(!stats?.attendanceByDay || stats.attendanceByDay.length === 0) && (
