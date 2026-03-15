@@ -291,15 +291,18 @@ export function Settings() {
             </p>
           </div>
           <button
-            onClick={() => handleUpdateWhatsApp({ enableWhatsappNotifications: !(settings?.enableWhatsappNotifications !== false) })}
+            onClick={() => {
+              const current = settings?.enableWhatsappNotifications !== false && String(settings?.enableWhatsappNotifications) !== 'false';
+              handleUpdateWhatsApp({ enableWhatsappNotifications: !current });
+            }}
             className={clsx(
               "ml-auto w-12 h-6 rounded-full transition-colors relative",
-              (settings?.enableWhatsappNotifications !== false) ? "bg-emerald-500" : "bg-zinc-300 dark:bg-zinc-600"
+              (settings?.enableWhatsappNotifications !== false && String(settings?.enableWhatsappNotifications) !== 'false') ? "bg-emerald-500" : "bg-zinc-300 dark:bg-zinc-600"
             )}
           >
             <div className={clsx(
               "absolute top-1 w-4 h-4 bg-white rounded-full transition-all",
-              (settings?.enableWhatsappNotifications !== false) ? "left-7" : "left-1"
+              (settings?.enableWhatsappNotifications !== false && String(settings?.enableWhatsappNotifications) !== 'false') ? "left-7" : "left-1"
             )} />
           </button>
         </div>
@@ -385,15 +388,18 @@ export function Settings() {
               <div className="text-xs text-zinc-500">Sends the same notification via email to students</div>
             </div>
             <button
-              onClick={() => handleUpdateWhatsApp({ enableEmailNotifications: !(settings?.enableEmailNotifications) })}
+              onClick={() => {
+                const current = settings?.enableEmailNotifications === true || String(settings?.enableEmailNotifications) === 'true';
+                handleUpdateWhatsApp({ enableEmailNotifications: !current });
+              }}
               className={clsx(
                 "w-12 h-6 rounded-full transition-colors relative",
-                settings?.enableEmailNotifications ? "bg-emerald-500" : "bg-zinc-300 dark:bg-zinc-600"
+                (settings?.enableEmailNotifications === true || String(settings?.enableEmailNotifications) === 'true') ? "bg-emerald-500" : "bg-zinc-300 dark:bg-zinc-600"
               )}
             >
               <div className={clsx(
                 "absolute top-1 w-4 h-4 bg-white rounded-full transition-all",
-                settings?.enableEmailNotifications ? "left-7" : "left-1"
+                (settings?.enableEmailNotifications === true || String(settings?.enableEmailNotifications) === 'true') ? "left-7" : "left-1"
               )} />
             </button>
           </div>

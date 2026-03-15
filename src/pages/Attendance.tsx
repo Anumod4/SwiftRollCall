@@ -41,6 +41,8 @@ export function Attendance() {
   const [showBroadcast, setShowBroadcast] = useState(false);
   const [pendingNotifications, setPendingNotifications] = useState<any[]>([]);
   const [notifiedStatus, setNotifiedStatus] = useState<Record<number, { wa: boolean; email: boolean }>>({});
+  const [broadcastPage, setBroadcastPage] = useState(0);
+  const RECORDS_PER_PAGE = 15;
 
   useEffect(() => {
     loadData();
@@ -149,6 +151,7 @@ export function Attendance() {
         setIsMarkingOpen(false);
         setPendingNotifications(response.notifications || []);
         setNotifiedStatus({}); // Reset tracking for new broadcast
+        setBroadcastPage(0); // Reset pagination
         setShowBroadcast(true);
         loadData();
       }
@@ -454,99 +457,140 @@ export function Attendance() {
       {/* Broadcast Modal */}
       {showBroadcast && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-zinc-800 rounded-3xl p-8 w-full max-w-2xl shadow-2xl border border-zinc-100 dark:border-zinc-700 transition-all max-h-[90vh] overflow-hidden flex flex-col">
+          <div className="bg-white dark:bg-zinc-800 rounded-3xl p-8 w-full max-w-6xl shadow-2xl border border-zinc-100 dark:border-zinc-700 transition-all h-[90vh] flex flex-col">
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h2 className="text-2xl font-bold text-zinc-900 dark:text-white flex items-center gap-3">
-                  <Send className="text-indigo-600" size={28} />
+                <h2 className="text-3xl font-bold text-zinc-900 dark:text-white flex items-center gap-3">
+                  <Send className="text-indigo-600" size={32} />
                   Broadcast Center
                 </h2>
-                <p className="text-zinc-500 dark:text-zinc-400 mt-1">Send notifications for the captures recorded.</p>
+                <p className="text-zinc-500 dark:text-zinc-400 mt-1">Send notifications for the captures recorded. Show {pendingNotifications.length} records.</p>
               </div>
-              <button onClick={() => setShowBroadcast(false)} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-xl text-zinc-500 transition-colors">
-                <X size={24} />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto space-y-4 mb-8 pr-2 custom-scrollbar">
-              {pendingNotifications.map((notif, idx) => {
-                const enableWa = settings?.enableWhatsappNotifications !== false && String(settings?.enableWhatsappNotifications) !== 'false';
-                const enableMail = settings?.enableEmailNotifications === true || String(settings?.enableEmailNotifications) === 'true';
-                const status = notifiedStatus[idx] || { wa: false, email: false };
-
-                return (
-                  <div key={idx} className="bg-zinc-50 dark:bg-zinc-900/50 p-5 rounded-2xl border border-zinc-100 dark:border-zinc-800 group hover:border-indigo-200 dark:hover:border-indigo-900/50 transition-all shadow-sm">
-                    <div className="flex justify-between items-start gap-4 mb-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold">
-                          {notif.studentName?.charAt(0)}
-                        </div>
-                        <h3 className="font-bold text-zinc-900 dark:text-white text-lg">{notif.studentName}</h3>
-                      </div>
-                      <div className="flex gap-2">
-                        {/* Manual WhatsApp Trigger */}
-                        <button
-                          onClick={() => {
-                            if (enableWa) {
-                              handleManualNotifications(notif, settings, { wa: window.open('about:blank', '_blank') });
-                              setNotifiedStatus(prev => ({
-                                ...prev,
-                                [idx]: { ...prev[idx], wa: true }
-                              }));
-                            }
-                          }}
-                          className={clsx(
-                            "p-3 rounded-xl transition-all shadow-sm flex items-center gap-2",
-                            status.wa ? "bg-emerald-500 text-white" : (enableWa ? "bg-emerald-100 text-emerald-600 hover:scale-105" : "bg-zinc-100 text-zinc-400 cursor-not-allowed")
-                          )}
-                          disabled={!enableWa}
-                          title="Send WhatsApp"
-                        >
-                          {status.wa ? <Check size={20} /> : <MessageSquare size={20} />}
-                        </button>
-                        {/* Manual Email Trigger */}
-                        <button
-                          onClick={() => {
-                            if (enableMail) {
-                              // For email, we don't always need a window but we'll stick to the utility's pattern
-                              // but let's try opening it only if needed
-                              handleManualNotifications(notif, settings, { mail: window.open('about:blank', '_blank') });
-                              setNotifiedStatus(prev => ({
-                                ...prev,
-                                [idx]: { ...prev[idx], email: true }
-                              }));
-                            }
-                          }}
-                          className={clsx(
-                            "p-3 rounded-xl transition-all shadow-sm flex items-center gap-2",
-                            status.email ? "bg-indigo-600 text-white" : (enableMail ? "bg-indigo-100 text-indigo-600 hover:scale-105" : "bg-zinc-100 text-zinc-400 cursor-not-allowed")
-                          )}
-                          disabled={!enableMail}
-                          title="Send Email"
-                        >
-                          {status.email ? <Check size={20} /> : <Mail size={20} />}
-                        </button>
-                      </div>
-                    </div>
-                    <div className="bg-white dark:bg-zinc-800 p-4 rounded-xl border border-zinc-100 dark:border-zinc-700">
-                      <p className="text-zinc-600 dark:text-zinc-400 text-sm italic leading-relaxed">"{notif.text}"</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="pt-6 border-t border-zinc-100 dark:border-zinc-700 flex justify-between items-center">
-              <span className="text-sm font-medium text-zinc-500 flex items-center gap-2">
-                <Check size={16} className="text-emerald-500" />
-                {pendingNotifications.length} notifications ready
-              </span>
               <button 
-                onClick={() => setShowBroadcast(false)}
-                className="px-8 py-3 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-2xl font-bold shadow-lg hover:bg-zinc-800 dark:hover:bg-white transition-all transform hover:-translate-y-0.5 active:translate-y-0"
+                onClick={() => setShowBroadcast(false)} 
+                className="p-3 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-2xl text-zinc-500 transition-all hover:scale-110"
               >
-                Done
+                <X size={28} />
               </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {pendingNotifications
+                  .slice(broadcastPage * RECORDS_PER_PAGE, (broadcastPage + 1) * RECORDS_PER_PAGE)
+                  .map((notif, pageIdx) => {
+                    const idx = broadcastPage * RECORDS_PER_PAGE + pageIdx;
+                    const enableWa = settings?.enableWhatsappNotifications !== false && String(settings?.enableWhatsappNotifications) !== 'false';
+                    const enableMail = settings?.enableEmailNotifications === true || String(settings?.enableEmailNotifications) === 'true';
+                    const status = notifiedStatus[idx] || { wa: false, email: false };
+
+                    return (
+                      <div key={idx} className="bg-zinc-50 dark:bg-zinc-900/50 p-5 rounded-2xl border border-zinc-100 dark:border-zinc-800 group hover:border-indigo-200 dark:hover:border-indigo-900/50 transition-all shadow-sm">
+                        <div className="flex justify-between items-start gap-3">
+                          <div className="flex items-center gap-3 overflow-hidden">
+                            <div className="w-12 h-12 min-w-[48px] rounded-full bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-xl uppercase shadow-inner">
+                              {notif.studentName?.charAt(0)}
+                            </div>
+                            <div className="overflow-hidden">
+                              <h3 className="font-bold text-zinc-900 dark:text-white text-lg truncate" title={notif.studentName}>{notif.studentName}</h3>
+                              <div className="flex flex-col text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 space-y-0.5">
+                                <div className="flex items-center gap-1.5">
+                                  <MessageSquare size={12} className="text-emerald-500" />
+                                  <span className="truncate">{notif.phone || 'No phone'}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <Mail size={12} className="text-indigo-500" />
+                                  <span className="truncate">{notif.email || 'No email'}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            {/* Manual WhatsApp Trigger */}
+                            <button
+                              onClick={() => {
+                                if (enableWa) {
+                                  handleManualNotifications(notif, settings, { wa: window.open('about:blank', '_blank') });
+                                  setNotifiedStatus(prev => ({
+                                    ...prev,
+                                    [idx]: { ...prev[idx], wa: true }
+                                  }));
+                                }
+                              }}
+                              className={clsx(
+                                "p-3 rounded-xl transition-all shadow-sm flex items-center justify-center",
+                                status.wa ? "bg-emerald-500 text-white" : (enableWa ? "bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-emerald-600 hover:border-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/20" : "bg-zinc-100 dark:bg-zinc-800 text-zinc-400 cursor-not-allowed opacity-50")
+                              )}
+                              disabled={!enableWa}
+                              title="Send WhatsApp"
+                            >
+                              {status.wa ? <Check size={20} /> : <MessageSquare size={20} />}
+                            </button>
+                            {/* Manual Email Trigger */}
+                            <button
+                              onClick={() => {
+                                if (enableMail) {
+                                  handleManualNotifications(notif, settings, { mail: window.open('about:blank', '_blank') });
+                                  setNotifiedStatus(prev => ({
+                                    ...prev,
+                                    [idx]: { ...prev[idx], email: true }
+                                  }));
+                                }
+                              }}
+                              className={clsx(
+                                "p-3 rounded-xl transition-all shadow-sm flex items-center justify-center",
+                                status.email ? "bg-indigo-600 text-white" : (enableMail ? "bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20" : "bg-zinc-100 dark:bg-zinc-800 text-zinc-400 cursor-not-allowed opacity-50")
+                              )}
+                              disabled={!enableMail}
+                              title="Send Email"
+                            >
+                              {status.email ? <Check size={20} /> : <Mail size={20} />}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+
+            <div className="mt-8 pt-6 border-t border-zinc-100 dark:border-zinc-700 flex flex-col sm:flex-row justify-between items-center gap-4">
+              <div className="flex items-center gap-2">
+                <button
+                  disabled={broadcastPage === 0}
+                  onClick={() => setBroadcastPage(p => p - 1)}
+                  className="p-2 bg-zinc-100 dark:bg-zinc-800 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed hover:bg-zinc-200"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                <span className="text-sm font-bold px-4 py-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-full">
+                  Page {broadcastPage + 1} of {Math.ceil(pendingNotifications.length / RECORDS_PER_PAGE) || 1}
+                </span>
+                <button
+                  disabled={(broadcastPage + 1) * RECORDS_PER_PAGE >= pendingNotifications.length}
+                  onClick={() => setBroadcastPage(p => p + 1)}
+                  className="p-2 bg-zinc-100 dark:bg-zinc-800 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed hover:bg-zinc-200"
+                >
+                  <ChevronRight size={20} />
+                </button>
+              </div>
+
+              <div className="flex items-center gap-6">
+                <span className="text-sm font-medium text-zinc-500 flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                  {Object.values(notifiedStatus).filter(s => s.wa).length} WA Sent
+                </span>
+                <span className="text-sm font-medium text-zinc-500 flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
+                  {Object.values(notifiedStatus).filter(s => s.email).length} Mail Sent
+                </span>
+                <button
+                  onClick={() => setShowBroadcast(false)}
+                  className="px-8 py-3 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl font-bold hover:scale-105 active:scale-95 transition-all shadow-lg"
+                >
+                  Close Center
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -554,3 +598,4 @@ export function Attendance() {
     </div>
   );
 }
+
