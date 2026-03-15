@@ -387,29 +387,63 @@ export function Settings() {
           </div>
 
           {settings?.enableEmailNotifications && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2">
+            <div className="space-y-6 animate-in fade-in slide-in-from-top-2">
               <div>
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Resend API Key</label>
-                <input
-                  type="password"
-                  value={settings?.resendApiKey || ''}
-                  onChange={(e) => setSettings(settings ? {...settings, resendApiKey: e.target.value} : null)}
-                  onBlur={() => handleUpdateWhatsApp({ resendApiKey: settings?.resendApiKey })}
-                  className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                  placeholder="re_..."
-                />
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Email Delivery Method</label>
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    onClick={() => handleUpdateWhatsApp({ emailProvider: 'manual' })}
+                    className={clsx(
+                      "p-4 rounded-2xl border-2 text-left transition-all",
+                      settings.emailProvider === 'manual' || !settings.emailProvider
+                        ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300"
+                        : "border-zinc-100 dark:border-zinc-700 hover:border-zinc-200 dark:hover:border-zinc-600"
+                    )}
+                  >
+                    <div className="font-bold mb-1">Manual (Free)</div>
+                    <div className="text-xs opacity-70">Opens your default email app to send manually</div>
+                  </button>
+                  <button
+                    onClick={() => handleUpdateWhatsApp({ emailProvider: 'resend' })}
+                    className={clsx(
+                      "p-4 rounded-2xl border-2 text-left transition-all",
+                      settings.emailProvider === 'resend'
+                        ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300"
+                        : "border-zinc-100 dark:border-zinc-700 hover:border-zinc-200 dark:hover:border-zinc-600"
+                    )}
+                  >
+                    <div className="font-bold mb-1">Automated (Resend)</div>
+                    <div className="text-xs opacity-70">Requires API Key. Sends in the background</div>
+                  </button>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">From Email</label>
-                <input
-                  type="text"
-                  value={settings?.fromEmail || ''}
-                  onChange={(e) => setSettings(settings ? {...settings, fromEmail: e.target.value} : null)}
-                  onBlur={() => handleUpdateWhatsApp({ fromEmail: settings?.fromEmail })}
-                  className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                  placeholder="onboarding@resend.dev"
-                />
-              </div>
+
+              {settings.emailProvider === 'resend' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Resend API Key</label>
+                    <input
+                      type="password"
+                      value={settings?.resendApiKey || ''}
+                      onChange={(e) => setSettings(settings ? {...settings, resendApiKey: e.target.value} : null)}
+                      onBlur={() => handleUpdateWhatsApp({ resendApiKey: settings?.resendApiKey })}
+                      className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                      placeholder="re_..."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">From Email</label>
+                    <input
+                      type="text"
+                      value={settings?.fromEmail || ''}
+                      onChange={(e) => setSettings(settings ? {...settings, fromEmail: e.target.value} : null)}
+                      onBlur={() => handleUpdateWhatsApp({ fromEmail: settings?.fromEmail })}
+                      className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                      placeholder="onboarding@resend.dev"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

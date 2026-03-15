@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { Student, Attendance as AttendanceType, AppSettings } from '../types';
-import { getWhatsAppUrl } from '../utils/whatsapp';
+import { handleManualNotifications } from '../utils/notifications';
 import { 
   format, 
   startOfWeek, 
@@ -119,12 +119,18 @@ export function Attendance() {
     const hasAutomatedProvider = settings?.whatsappProvider === 'rocketsender' || settings?.whatsappProvider === 'meta';
 
     let waWindow: Window | null = null;
+    let mailWindow: Window | null = null;
     
-    // START: Open window immediately at the top level of the user action
-    if (isNewOrChanged && autoNotify && !hasAutomatedProvider) {
+    // START: Open windows immediately at the top level of the user action
+    if (isNewOrChanged && autoNotify) {
       const student = students.find(s => s.id === studentId);
-      if (student && student.contactInfo) {
-        waWindow = window.open('about:blank', '_blank');
+      if (student) {
+        if (!hasAutomatedProvider) {
+          waWindow = window.open('about:blank', '_blank');
+        }
+        if (settings?.enableEmailNotifications && (!settings?.emailProvider || settings?.emailProvider === 'manual')) {
+          mailWindow = window.open('about:blank', '_blank');
+        }
       }
     }
     
@@ -148,37 +154,31 @@ export function Attendance() {
     setAttendance(newAttendance);
 
 
+    // Notifications handled after API call
+    /*
     if (isNewOrChanged && autoNotify) {
-      const student = students.find(s => s.id === studentId);
-      if (student && student.contactInfo) {
-        if (!hasAutomatedProvider) {
-          const cleanNumber = student.contactInfo.replace(/\D/g, '');
-          const displayDate = format(date, 'MMM d, yyyy');
-          const classPart = student.className ? ` (Class: ${student.className})` : '';
-          let text = '';
-          if (status === 'Present') text = `Hi, attendance for ${student.name}${classPart} on ${displayDate} has been marked as Present.`;
-          else if (status === 'Absent') text = `Hi, attendance for ${student.name}${classPart} on ${displayDate} has been marked as Absent.`;
-          else if (status === 'Cancelled') text = `Hi, the class for ${student.name}${classPart} on ${displayDate} has been cancelled.`;
-          
-          if (cleanNumber && text && waWindow) {
-          waWindow.location.href = getWhatsAppUrl(cleanNumber, text);
-          } else if (waWindow) {
-            waWindow.close();
-          }
-        }
-      }
+      ...
     }
+    */
 
     try {
+      let response;
       if (existing) {
         if (existing.status === status) {
           await api.deleteAttendance(existing.id);
         } else {
           await api.deleteAttendance(existing.id);
-          await api.markAttendance({ studentId, date: dateStr, status });
+          response = await api.markAttendance({ studentId, date: dateStr, status });
         }
       } else {
-        await api.markAttendance({ studentId, date: dateStr, status });
+        response = await api.markAttendance({ studentId, date: dateStr, status });
+      }
+
+      if (response?.notification && autoNotify) {
+        handleManualNotifications(response.notification, settings, { wa: waWindow, mail: mailWindow });
+      } else {
+        if (waWindow) waWindow.close();
+        if (mailWindow) mailWindow.close();
       }
       
       // Silently refresh to get real IDs

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../services/api';
 import { Student, Payment, AppSettings } from '../types';
-import { getWhatsAppUrl } from '../utils/whatsapp';
+import { handleManualNotifications } from '../utils/notifications';
 import { DollarSign, FileText, Bell, Plus, Download, Printer, Share2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ReceiptTemplate } from '../components/ReceiptTemplate';
@@ -110,12 +110,17 @@ export function Fees() {
     if (!selectedStudent || !amount) return;
 
     const student = students.find(s => s.id === Number(selectedStudent));
-    const cleanNumber = student?.contactInfo?.replace(/\D/g, '');
     let waWindow: Window | null = null;
+    let mailWindow: Window | null = null;
     const hasAutomatedProvider = settings?.whatsappProvider === 'rocketsender' || settings?.whatsappProvider === 'meta';
 
-    if (autoNotify && cleanNumber && student && !hasAutomatedProvider) {
-      waWindow = window.open('about:blank', '_blank');
+    if (autoNotify && student) {
+      if (!hasAutomatedProvider) {
+        waWindow = window.open('about:blank', '_blank');
+      }
+      if (settings?.enableEmailNotifications && (!settings?.emailProvider || settings?.emailProvider === 'manual')) {
+        mailWindow = window.open('about:blank', '_blank');
+      }
     }
 
 
@@ -127,19 +132,11 @@ export function Fees() {
         notes,
       });
       
-      if (autoNotify && waWindow && cleanNumber && student) {
-        const displayDate = format(new Date(date), 'MMM d, yyyy');
-        const classPart = student.className ? `\n*Class:* ${student.className}` : '';
-        const text = `*RECEIPT OF PAYMENT*\n\n` +
-                     `Hi, we have received a payment for *${student.name}*${classPart}.\n\n` +
-                     `*Amount:* $${amount}\n` +
-                     `*Date:* ${displayDate}\n` +
-                     `*Receipt No:* ${response.receiptNumber}\n` +
-                     `${notes ? `*Notes:* ${notes}\n` : ''}\n` +
-                     `Thank you for your payment! You can download the official PDF receipt from our portal.`;
-        waWindow.location.href = getWhatsAppUrl(cleanNumber, text);
-      } else if (waWindow) {
-        waWindow.close();
+      if (autoNotify && response.notification) {
+        handleManualNotifications(response.notification, settings, { wa: waWindow, mail: mailWindow });
+      } else {
+        if (waWindow) waWindow.close();
+        if (mailWindow) mailWindow.close();
       }
 
       setIsModalOpen(false);
@@ -159,22 +156,39 @@ export function Fees() {
     const dueDate = format(new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd');
     
     const hasAutomatedProvider = settings?.whatsappProvider === 'rocketsender' || settings?.whatsappProvider === 'meta';
+    
+    let waWindow: Window | null = null;
+    let mailWindow: Window | null = null;
 
-    if (cleanNumber && student && !hasAutomatedProvider) {
-      const displayDate = format(new Date(dueDate), 'MMM d, yyyy');
-      const classPart = student.className ? ` (Class: ${student.className})` : '';
-      const text = `*PAYMENT REMINDER*\n\n` +
-                   `Hi, this is a reminder that a payment for *${student.name}*${classPart} is due soon.\n\n` +
-                   `*Amount Due:* $${amount}\n` +
-                   `*Due Date:* ${displayDate}\n\n` +
-                   `Please ignore if already paid. Thank you!`;
-      window.open(getWhatsAppUrl(cleanNumber, text), '_blank');
+    if (student) {
+      if (!hasAutomatedProvider) {
+        waWindow = window.open('about:blank', '_blank');
+      }
+      if (settings?.enableEmailNotifications && (!settings?.emailProvider || settings?.emailProvider === 'manual')) {
+        mailWindow = window.open('about:blank', '_blank');
+      }
     }
 
     try {
-      await api.sendPaymentReminder(studentId, dueDate, amount);
+      const response = await api.sendPaymentReminder(studentId, dueDate, amount);
+      const studentData = students.find(s => s.id === studentId);
+      
+      // We need a notification object for manual triggers
+      const notification = {
+        phone: studentData?.contactInfo || '',
+        email: studentData?.email || '',
+        text: `*PAYMENT REMINDER*\n\n` +
+              `Hi, this is a reminder that a payment for *${studentData?.name}* is due soon.\n\n` +
+              `*Amount Due:* $${amount}\n` +
+              `*Due Date:* ${format(new Date(dueDate), 'MMM d, yyyy')}\n\n` +
+              `Please ignore if already paid. Thank you!`
+      };
+
+      handleManualNotifications(notification, settings, { wa: waWindow, mail: mailWindow });
     } catch (error) {
       console.error('Failed to send reminder', error);
+      if (waWindow) waWindow.close();
+      if (mailWindow) mailWindow.close();
     }
   };
 

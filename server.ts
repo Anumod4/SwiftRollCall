@@ -216,6 +216,7 @@ async function setupDatabase() {
     INSERT OR IGNORE INTO settings (key, value) VALUES ('receiptTemplate', 'modern');
   `);
   await db.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('whatsappProvider', 'manual')");
+  await db.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('emailProvider', 'manual')");
   await db.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('enableEmailNotifications', 'false')");
 
   await db.executeMultiple(`
@@ -594,6 +595,7 @@ app.get('/api/attendance', async (req, res) => {
 
 app.post('/api/attendance', async (req, res) => {
   const { studentId, date, status, notes } = req.body;
+  let notification: any = null;
   try {
     const result = await db.execute({
       sql: 'INSERT INTO attendance (studentId, date, status, notes) VALUES (?, ?, ?, ?)',
@@ -616,11 +618,11 @@ app.post('/api/attendance', async (req, res) => {
       else if (status === 'Cancelled') text = `Hi, the class for ${student.name}${classPart} on ${displayDate} has been cancelled.`;
 
       if (text) {
+        notification = { text, phone: student.contactInfo as string, email: student.email as string };
         await sendNotification({ phone: student.contactInfo as string, email: student.email as string }, 'Attendance Update', text);
       }
     }
-
-    res.json({ id: Number(result.lastInsertRowid) });
+    res.json({ id: Number(result.lastInsertRowid), notification });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to mark attendance' });
@@ -665,6 +667,7 @@ app.get('/api/payments', async (req, res) => {
 app.post('/api/payments', async (req, res) => {
   const { studentId, amount, date, notes } = req.body;
   const receiptNumber = 'REC-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+  let notification: any = null;
   try {
     const result = await db.execute({
       sql: 'INSERT INTO payments (studentId, amount, date, receiptNumber, notes) VALUES (?, ?, ?, ?, ?)',
@@ -689,10 +692,11 @@ app.post('/api/payments', async (req, res) => {
                    `${notes ? `*Notes:* ${notes}\n` : ''}\n` +
                    `Thank you for your payment! You can download the official PDF receipt from our portal.`;
       
+      notification = { text, phone: student.contactInfo as string, email: student.email as string };
       await sendNotification({ phone: student.contactInfo as string, email: student.email as string }, 'Payment Receipt', text);
     }
 
-    res.json({ id: Number(result.lastInsertRowid), receiptNumber });
+    res.json({ id: Number(result.lastInsertRowid), receiptNumber, notification });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to record payment' });

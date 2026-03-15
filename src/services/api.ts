@@ -125,7 +125,7 @@ export const api = {
     const res = await fetch(`/api/attendance?${query}`, { headers: getHeaders() });
     return handleResponse(res);
   },
-  markAttendance: async (attendance: Omit<Attendance, 'id'>): Promise<{ id: number }> => {
+  markAttendance: async (attendance: Omit<Attendance, 'id'>): Promise<{ id: number; notification?: any }> => {
     const res = await fetch('/api/attendance', {
       method: 'POST',
       headers: getHeaders(),
@@ -147,7 +147,7 @@ export const api = {
     const res = await fetch(`/api/payments${query}`, { headers: getHeaders() });
     return handleResponse(res);
   },
-  recordPayment: async (payment: Omit<Payment, 'id' | 'receiptNumber'>): Promise<{ id: number; receiptNumber: string }> => {
+  recordPayment: async (payment: Omit<Payment, 'id' | 'receiptNumber'>): Promise<{ id: number; receiptNumber: string; notification?: any }> => {
     const res = await fetch('/api/payments', {
       method: 'POST',
       headers: getHeaders(),
