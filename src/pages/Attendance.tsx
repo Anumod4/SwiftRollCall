@@ -125,7 +125,7 @@ export function Attendance() {
     if (isNewOrChanged && autoNotify) {
       const student = students.find(s => s.id === studentId);
       if (student) {
-        if (!hasAutomatedProvider) {
+        if (!hasAutomatedProvider && settings?.enableWhatsappNotifications !== false) {
           waWindow = window.open('about:blank', '_blank');
         }
         if (settings?.enableEmailNotifications && (!settings?.emailProvider || settings?.emailProvider === 'manual')) {

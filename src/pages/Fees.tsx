@@ -115,7 +115,7 @@ export function Fees() {
     const hasAutomatedProvider = settings?.whatsappProvider === 'rocketsender' || settings?.whatsappProvider === 'meta';
 
     if (autoNotify && student) {
-      if (!hasAutomatedProvider) {
+      if (!hasAutomatedProvider && settings?.enableWhatsappNotifications !== false) {
         waWindow = window.open('about:blank', '_blank');
       }
       if (settings?.enableEmailNotifications && (!settings?.emailProvider || settings?.emailProvider === 'manual')) {
@@ -161,7 +161,7 @@ export function Fees() {
     let mailWindow: Window | null = null;
 
     if (student) {
-      if (!hasAutomatedProvider) {
+      if (!hasAutomatedProvider && settings?.enableWhatsappNotifications !== false) {
         waWindow = window.open('about:blank', '_blank');
       }
       if (settings?.enableEmailNotifications && (!settings?.emailProvider || settings?.emailProvider === 'manual')) {

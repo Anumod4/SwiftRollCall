@@ -290,9 +290,21 @@ export function Settings() {
               Configure how automated notifications are sent to parents.
             </p>
           </div>
+          <button
+            onClick={() => handleUpdateWhatsApp({ enableWhatsappNotifications: !(settings?.enableWhatsappNotifications !== false) })}
+            className={clsx(
+              "ml-auto w-12 h-6 rounded-full transition-colors relative",
+              (settings?.enableWhatsappNotifications !== false) ? "bg-emerald-500" : "bg-zinc-300 dark:bg-zinc-600"
+            )}
+          >
+            <div className={clsx(
+              "absolute top-1 w-4 h-4 bg-white rounded-full transition-all",
+              (settings?.enableWhatsappNotifications !== false) ? "left-7" : "left-1"
+            )} />
+          </button>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className={clsx("p-6 space-y-6 transition-opacity", (settings?.enableWhatsappNotifications === false) && "opacity-50 pointer-events-none")}>
           <div>
             <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Provider</label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

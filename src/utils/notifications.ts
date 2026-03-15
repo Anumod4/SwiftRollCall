@@ -22,9 +22,10 @@ export const handleManualNotifications = (
   const isWaManual = !settings?.whatsappProvider || settings?.whatsappProvider === 'manual';
   const isMailManual = !settings?.emailProvider || settings?.emailProvider === 'manual';
   const enableMail = settings?.enableEmailNotifications === true || settings?.enableEmailNotifications === 'true';
+  const enableWa = settings?.enableWhatsappNotifications !== false && settings?.enableWhatsappNotifications !== 'false';
 
   // 1. WhatsApp Manual
-  if (isWaManual && notification.phone && windows.wa) {
+  if (enableWa && isWaManual && notification.phone && windows.wa) {
     windows.wa.location.href = getWhatsAppUrl(notification.phone, notification.text);
   } else if (windows.wa) {
     windows.wa.close();

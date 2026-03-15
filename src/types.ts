@@ -59,6 +59,7 @@ export interface AppSettings {
   whatsappProvider?: 'meta' | 'rocketsender';
   whatsappPhoneNumberId?: string;
   whatsappAccessToken?: string;
+  enableWhatsappNotifications?: boolean;
   rocketSenderApiKey?: string;
   rocketSenderDeviceId?: string;
   emailProvider?: 'manual' | 'resend';

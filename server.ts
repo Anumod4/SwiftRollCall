@@ -50,15 +50,16 @@ const authenticateToken = (req: any, res: any, next: any) => {
 
 async function sendNotification(recipient: { phone: string; email?: string | null }, subject: string, body: string) {
   try {
-    const result = await db.execute('SELECT key, value FROM settings WHERE key IN ("whatsappPhoneNumberId", "whatsappAccessToken", "whatsappProvider", "enableEmailNotifications", "resendApiKey", "fromEmail")');
+    const result = await db.execute('SELECT key, value FROM settings WHERE key IN ("whatsappPhoneNumberId", "whatsappAccessToken", "whatsappProvider", "enableWhatsappNotifications", "enableEmailNotifications", "resendApiKey", "fromEmail")');
     const config: Record<string, string> = {};
     result.rows.forEach(row => {
       config[row.key as string] = row.value as string;
     });
 
     // 1. WhatsApp Notification
-    const provider = config.whatsappProvider || 'manual';
-    const cleanNumber = recipient.phone.replace(/\D/g, '');
+    if (config.enableWhatsappNotifications === 'true') {
+      const provider = config.whatsappProvider || 'manual';
+      const cleanNumber = recipient.phone.replace(/\D/g, '');
 
     if (provider === 'rocketsender') {
       const apiKey = config.rocketSenderApiKey;
@@ -110,17 +111,42 @@ async function sendNotification(recipient: { phone: string; email?: string | nul
             text: { body }
           })
         });
+        }
+      }
+    }
 
-        if (!response.ok) {
-          const data = await response.json();
-          console.error('Meta WhatsApp API Error:', data);
+    // 2. Email Notification
+    if (config.enableEmailNotifications === 'true' && recipient.email) {
+      const resendApiKey = config.resendApiKey;
+      const fromEmail = config.fromEmail || 'notifications@resend.dev';
+
+      if (!resendApiKey) {
+        console.log(`[SIMULATED EMAIL] To: ${recipient.email} | From: ${fromEmail} | Subject: ${subject} | Body: ${body}`);
+      } else {
+        const emailResponse = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${resendApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: `SwiftRollCall <${fromEmail}>`,
+            to: recipient.email,
+            subject: subject,
+            html: body.replace(/\n/g, '<br>')
+          })
+        });
+
+        if (!emailResponse.ok) {
+          const emailData = await emailResponse.json();
+          console.error('Resend API Error:', emailData);
         } else {
-          console.log(`Successfully sent Meta WhatsApp to ${cleanNumber}`);
+          console.log(`Successfully sent email to ${recipient.email}`);
         }
       }
     }
   } catch (error) {
-    console.error('Failed to send WhatsApp:', error);
+    console.error('Notification Error:', error);
   }
 }
 
@@ -216,6 +242,7 @@ async function setupDatabase() {
     INSERT OR IGNORE INTO settings (key, value) VALUES ('receiptTemplate', 'modern');
   `);
   await db.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('whatsappProvider', 'manual')");
+  await db.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('enableWhatsappNotifications', 'true')");
   await db.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('emailProvider', 'manual')");
   await db.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('enableEmailNotifications', 'false')");
 
