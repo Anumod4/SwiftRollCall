@@ -7,6 +7,8 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { SplashScreen } from './components/SplashScreen';
+import { AnimatePresence } from 'motion/react';
 
 const Dashboard = React.lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
 const Students = React.lazy(() => import('./pages/Students').then(m => ({ default: m.Students })));
@@ -21,14 +23,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-900 transition-colors">
-        <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-          <p className="text-zinc-500 dark:text-zinc-400 font-medium">Authenticating...</p>
-        </div>
-      </div>
-    );
+    return <SplashScreen message="Authenticating..." />;
   }
 
   if (!user) {
@@ -40,31 +35,26 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 function AppRoutes() {
   return (
-    <React.Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-900 transition-colors">
-        <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-          <p className="text-zinc-500 dark:text-zinc-400 font-medium">Loading page...</p>
-        </div>
-      </div>
-    }>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/" element={
-          <ProtectedRoute>
-            <Layout />
-          </ProtectedRoute>
-        }>
-          <Route index element={<Dashboard />} />
-          <Route path="students" element={<Students />} />
-          <Route path="classes" element={<Classes />} />
-          <Route path="attendance" element={<Attendance />} />
-          <Route path="fees" element={<Fees />} />
-          <Route path="settings" element={<Settings />} />
-        </Route>
-      </Routes>
-    </React.Suspense>
+    <AnimatePresence mode="wait">
+      <React.Suspense fallback={<SplashScreen message="Loading page..." />}>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/" element={
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          }>
+            <Route index element={<Dashboard />} />
+            <Route path="students" element={<Students />} />
+            <Route path="classes" element={<Classes />} />
+            <Route path="attendance" element={<Attendance />} />
+            <Route path="fees" element={<Fees />} />
+            <Route path="settings" element={<Settings />} />
+          </Route>
+        </Routes>
+      </React.Suspense>
+    </AnimatePresence>
   );
 }
 

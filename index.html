@@ -4,10 +4,90 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SwiftRollCall</title>
+    <style>
+      #static-splash {
+        position: fixed;
+        inset: 0;
+        background: #ffffff;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+        font-family: sans-serif;
+        transition: opacity 0.5s ease;
+      }
+      .dark #static-splash {
+        background: #09090b;
+      }
+      .splash-logo {
+        width: 160px;
+        height: 160px;
+        object-fit: contain;
+        filter: drop-shadow(0 20px 50px rgba(79, 70, 229, 0.1));
+        animation: pulse 2s infinite ease-in-out;
+      }
+      @keyframes pulse {
+        0%, 100% { transform: scale(0.95); opacity: 0.8; }
+        50% { transform: scale(1.05); opacity: 1; }
+      }
+      .splash-title {
+        margin-top: 48px;
+        font-size: 30px;
+        font-weight: 900;
+        letter-spacing: -0.05em;
+        color: #18181b;
+      }
+      .dark .splash-title { color: #ffffff; }
+      .splash-bar {
+        margin-top: 24px;
+        width: 256px;
+        height: 6px;
+        background: #f4f4f5;
+        border-radius: 99px;
+        overflow: hidden;
+        position: relative;
+      }
+      .dark .splash-bar { background: #18181b; }
+      .splash-progress {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        background: linear-gradient(90deg, transparent, #4f46e5, transparent);
+        animation: loading 1.5s infinite ease-in-out;
+      }
+      @keyframes loading {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+      }
+    </style>
+    <script>
+      // Apply dark mode immediately to avoid flash
+      if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+      }
+    </script>
   </head>
   <body>
+    <div id="static-splash">
+      <img src="/assets/logo.png" class="splash-logo" alt="Logo">
+      <h1 class="splash-title">SwiftRollCall</h1>
+      <div class="splash-bar">
+        <div class="splash-progress"></div>
+      </div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Automatically hide once React is ready
+      window.addEventListener('load', () => {
+        const splash = document.getElementById('static-splash');
+        if (splash) {
+          splash.style.opacity = '0';
+          setTimeout(() => splash.remove(), 500);
+        }
+      });
+    </script>
   </body>
 </html>
 
