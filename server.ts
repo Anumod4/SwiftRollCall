@@ -545,11 +545,11 @@ app.get('/api/students', async (req, res) => {
 });
 
 app.post('/api/students', async (req, res) => {
-  const { name, parentName, contactInfo, subjects, classId, rateType, rateAmount } = req.body;
+  const { name, parentName, contactInfo, subjects, classId, rateType, rateAmount, email } = req.body;
   try {
     const result = await db.execute({
-      sql: 'INSERT INTO students (name, parentName, contactInfo, subjects, classId, rateType, rateAmount) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      args: [name, parentName || null, contactInfo, subjects, classId || null, rateType, rateAmount]
+      sql: 'INSERT INTO students (name, parentName, contactInfo, subjects, classId, rateType, rateAmount, email) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      args: [name, parentName || null, contactInfo, subjects, classId || null, rateType, rateAmount, email || null]
     });
     res.json({ id: Number(result.lastInsertRowid) });
   } catch (error) {
@@ -559,11 +559,11 @@ app.post('/api/students', async (req, res) => {
 });
 
 app.put('/api/students/:id', async (req, res) => {
-  const { name, parentName, contactInfo, subjects, classId, rateType, rateAmount } = req.body;
+  const { name, parentName, contactInfo, subjects, classId, rateType, rateAmount, email } = req.body;
   try {
     await db.execute({
-      sql: 'UPDATE students SET name = ?, parentName = ?, contactInfo = ?, subjects = ?, classId = ?, rateType = ?, rateAmount = ? WHERE id = ?',
-      args: [name, parentName || null, contactInfo, subjects, classId || null, rateType, rateAmount, req.params.id]
+      sql: 'UPDATE students SET name = ?, parentName = ?, contactInfo = ?, subjects = ?, classId = ?, rateType = ?, rateAmount = ?, email = ? WHERE id = ?',
+      args: [name, parentName || null, contactInfo, subjects, classId || null, rateType, rateAmount, email || null, req.params.id]
     });
     res.json({ success: true });
   } catch (error) {
