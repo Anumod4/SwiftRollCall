@@ -162,24 +162,7 @@ async function setupDatabase() {
       darkMode INTEGER DEFAULT 0,
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
     );
-  `);
 
-  try {
-    await db.execute("ALTER TABLE users ADD COLUMN darkMode INTEGER DEFAULT 0");
-  } catch (e) {}
-
-  try {
-    // SQLite doesn't support adding UNIQUE columns via ALTER TABLE
-    // We add it as a normal column first
-    await db.execute("ALTER TABLE users ADD COLUMN username TEXT");
-  } catch (e) {}
-
-  try {
-    // Then add a unique index
-    await db.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username)");
-  } catch (e) {}
-
-  await db.executeMultiple(`
     CREATE TABLE IF NOT EXISTS classes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL UNIQUE,
@@ -200,13 +183,6 @@ async function setupDatabase() {
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY(classId) REFERENCES classes(id)
     );
-
-    -- Ensure email column exists (migration)
-    try {
-      await db.execute("ALTER TABLE students ADD COLUMN email TEXT");
-    } catch (e) {
-      // Column might already exist
-    }
 
     CREATE TABLE IF NOT EXISTS attendance (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -238,9 +214,28 @@ async function setupDatabase() {
       config TEXT NOT NULL,
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
     );
-    
-    INSERT OR IGNORE INTO settings (key, value) VALUES ('receiptTemplate', 'modern');
   `);
+
+  // Migrations for users table
+  try {
+    await db.execute("ALTER TABLE users ADD COLUMN darkMode INTEGER DEFAULT 0");
+  } catch (e) {}
+
+  try {
+    await db.execute("ALTER TABLE users ADD COLUMN username TEXT");
+  } catch (e) {}
+
+  try {
+    await db.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username)");
+  } catch (e) {}
+
+  // Migration for students table
+  try {
+    await db.execute("ALTER TABLE students ADD COLUMN email TEXT");
+  } catch (e) {}
+
+  // Basic settings initialization
+  await db.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('receiptTemplate', 'modern')");
   await db.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('whatsappProvider', 'manual')");
   await db.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('enableWhatsappNotifications', 'true')");
   await db.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('emailProvider', 'manual')");
