@@ -32,12 +32,19 @@ export const handleManualNotifications = (
   }
 
   // 2. Email Manual
-  if (enableMail && isMailManual && notification.email && windows.mail) {
-    // mailbox usually doesn't like being in an about:blank iframe/window for mailto
-    // but we can try to redirect
-    windows.mail.location.href = getEmailUrl(notification.email, 'Update from SwiftRollCall', notification.text);
-    // Some browsers block mailto in new windows, so common practice is to close and use location.href
-    // but since we already opened it, we redirect.
+  if (enableMail && isMailManual && notification.email) {
+    const url = getEmailUrl(notification.email, 'Update from SwiftRollCall', notification.text);
+    // If windows.mail was passed, try to use it, otherwise use current window
+    // mailto: usually triggers external app and doesn't redirect current page
+    if (windows.mail) {
+      windows.mail.location.href = url;
+      // Close the empty window after a short delay since mailto doesn't occupy it
+      setTimeout(() => {
+        if (windows.mail && !windows.mail.closed) windows.mail.close();
+      }, 1000);
+    } else {
+      window.location.href = url;
+    }
   } else if (windows.mail) {
     windows.mail.close();
   }
