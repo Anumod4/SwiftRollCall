@@ -133,6 +133,14 @@ export const api = {
     });
     return handleResponse(res);
   },
+  markAttendanceBulk: async (data: { records: { studentId: number; status: string }[]; date: string }): Promise<{ success: boolean; notifications: any[] }> => {
+    const res = await fetch('/api/attendance/bulk', {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
   deleteAttendance: async (id: number): Promise<{ success: boolean }> => {
     const res = await fetch(`/api/attendance/${id}`, { 
       method: 'DELETE',

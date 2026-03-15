@@ -15,7 +15,7 @@ import {
   subMonths,
   addMonths
 } from 'date-fns';
-import { ChevronLeft, ChevronRight, Check, X, Minus, CalendarDays, CalendarRange, Filter, RotateCcw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, X, Minus, CalendarDays, CalendarRange, Filter, RotateCcw, Plus, Send, Mail, MessageSquare } from 'lucide-react';
 import clsx from 'clsx';
 import { Class } from '../types';
 
@@ -29,6 +29,17 @@ export function Attendance() {
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [classes, setClasses] = useState<Class[]>([]);
   const [selectedClassId, setSelectedClassId] = useState<number | ''>('');
+  
+  // Bulk marking state
+  const [isMarkingOpen, setIsMarkingOpen] = useState(false);
+  const [markingDate, setMarkingDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [markingClassId, setMarkingClassId] = useState<number | ''>('');
+  const [markingRecords, setMarkingRecords] = useState<Record<number, 'Present' | 'Absent' | 'Cancelled'>>({});
+  const [submitting, setSubmitting] = useState(false);
+  
+  // Broadcast state
+  const [showBroadcast, setShowBroadcast] = useState(false);
+  const [pendingNotifications, setPendingNotifications] = useState<any[]>([]);
 
   useEffect(() => {
     loadData();
@@ -112,88 +123,44 @@ export function Attendance() {
     }
   };
 
-  const handleMarkAttendance = async (studentId: number, date: Date, status: 'Present' | 'Absent' | 'Cancelled') => {
-    const dateStr = format(date, 'yyyy-MM-dd');
-    const existing = attendance.find(a => a.studentId === studentId && a.date === dateStr);
-    const isNewOrChanged = !existing || existing.status !== status;
-    const hasAutomatedProvider = settings?.whatsappProvider === 'rocketsender' || settings?.whatsappProvider === 'meta';
-
-    let waWindow: Window | null = null;
-    let mailWindow: Window | null = null;
+  const handleBulkSubmit = async () => {
+    if (!markingDate) return;
     
-    // START: Open windows immediately at the top level of the user action
-    if (isNewOrChanged && autoNotify) {
-      const student = students.find(s => s.id === studentId);
-      if (student) {
-        if (!hasAutomatedProvider && settings?.enableWhatsappNotifications !== false) {
-          waWindow = window.open('about:blank', '_blank');
-        }
-        if (settings?.enableEmailNotifications && (!settings?.emailProvider || settings?.emailProvider === 'manual')) {
-          mailWindow = window.open('about:blank', '_blank');
-        }
-      }
-    }
-    
-    // Save previous state for rollback
-    const previousAttendance = [...attendance];
-    
-    // Optimistic Update
-    let newAttendance = [...attendance];
-    if (existing) {
-      if (existing.status === status) {
-        // Toggle off
-        newAttendance = newAttendance.filter(a => a.id !== existing.id);
-      } else {
-        // Update status
-        newAttendance = newAttendance.map(a => a.id === existing.id ? { ...a, status } : a);
-      }
-    } else {
-      // Add temporary record (id: -1)
-      newAttendance.push({ id: -Date.now(), studentId, date: dateStr, status });
-    }
-    setAttendance(newAttendance);
-
-
-    // Notifications handled after API call
-    /*
-    if (isNewOrChanged && autoNotify) {
-      ...
-    }
-    */
-
+    setSubmitting(true);
     try {
-      let response;
-      if (existing) {
-        if (existing.status === status) {
-          await api.deleteAttendance(existing.id);
-        } else {
-          await api.deleteAttendance(existing.id);
-          response = await api.markAttendance({ studentId, date: dateStr, status });
-        }
-      } else {
-        response = await api.markAttendance({ studentId, date: dateStr, status });
-      }
-
-      if (response?.notification && autoNotify) {
-        handleManualNotifications(response.notification, settings, { wa: waWindow, mail: mailWindow });
-      } else {
-        if (waWindow) waWindow.close();
-        if (mailWindow) mailWindow.close();
+      const records = Object.entries(markingRecords).map(([studentId, status]) => ({
+        studentId: Number(studentId),
+        status
+      }));
+      
+      if (records.length === 0) {
+        alert('Please mark attendance for at least one student.');
+        setSubmitting(false);
+        return;
       }
       
-      // Silently refresh to get real IDs
-      const freshAttendance = await api.getAttendance({ 
-        startDate: format(viewMode === 'week' ? startOfWeek(currentDate, { weekStartsOn: 1 }) : startOfMonth(currentDate), 'yyyy-MM-dd'),
-        endDate: format(viewMode === 'week' ? addDays(startOfWeek(currentDate, { weekStartsOn: 1 }), 6) : endOfMonth(currentDate), 'yyyy-MM-dd')
+      const response = await api.markAttendanceBulk({ 
+        records, 
+        date: markingDate 
       });
-      setAttendance(freshAttendance);
+      
+      if (response.success) {
+        setIsMarkingOpen(false);
+        setPendingNotifications(response.notifications || []);
+        setShowBroadcast(true);
+        loadData();
+      }
     } catch (error) {
-      console.error('Failed to mark attendance', error);
-      // Rollback
-      setAttendance(previousAttendance);
-      alert('Failed to sync attendance. Please try again.');
+      console.error('Failed to submit bulk attendance', error);
+      alert('Failed to save attendance. Please try again.');
+    } finally {
+      setSubmitting(false);
     }
   };
+
+  const studentsToMark = markingClassId 
+    ? students.filter(s => s.classId === Number(markingClassId))
+    : students;
 
   const filteredStudents = selectedClassId 
     ? students.filter(s => s.classId === Number(selectedClassId))
@@ -254,16 +221,19 @@ export function Attendance() {
             </button>
           )}
 
-          {/* Auto Notify Toggle */}
-          <label className="flex items-center gap-2 cursor-pointer bg-white dark:bg-zinc-800 px-3 py-1.5 rounded-xl shadow-sm border border-zinc-100 dark:border-zinc-700">
-            <input 
-              type="checkbox" 
-              checked={autoNotify}
-              onChange={(e) => setAutoNotify(e.target.checked)}
-              className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700"
-            />
-            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Auto-Notify WhatsApp</span>
-          </label>
+          {/* Capture Attendance Button */}
+          <button
+            onClick={() => {
+              setMarkingClassId(selectedClassId);
+              setMarkingRecords({});
+              setMarkingDate(format(new Date(), 'yyyy-MM-dd'));
+              setIsMarkingOpen(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-sm transition-all font-medium"
+          >
+            <Plus size={18} />
+            Capture Attendance
+          </button>
 
           {/* View Toggle */}
           <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl border border-zinc-200 dark:border-zinc-700">
@@ -355,42 +325,14 @@ export function Attendance() {
                       
                       return (
                         <td key={day.toISOString()} className="p-0.5 text-center">
-                          <div className="relative group flex justify-center" tabIndex={0}>
-                            <button
-                              type="button"
+                          <div className="relative flex justify-center py-1">
+                            <div
                               className={clsx(
                                 "border flex items-center justify-center transition-all w-5 h-5 sm:w-6 sm:h-6 rounded-md",
                                 getStatusClass(record?.status || '')
                               )}
                             >
                               {getStatusIcon(record?.status || '')}
-                            </button>
-                            
-                             {/* Hover Menu - Added pb-2 to bridge the gap and prevent disappearing */}
-                            <div className="absolute bottom-full pb-2 hidden group-hover:flex group-focus-within:flex z-20">
-                              <div className="bg-white dark:bg-zinc-700 rounded-xl shadow-xl border border-zinc-100 dark:border-zinc-600 p-1 flex">
-                                <button 
-                                  onClick={() => handleMarkAttendance(student.id, day, 'Present')}
-                                  className="hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-lg transition-colors p-1.5"
-                                  title="Present"
-                                >
-                                  <Check size={14} />
-                                </button>
-                                <button 
-                                  onClick={() => handleMarkAttendance(student.id, day, 'Absent')}
-                                  className="hover:bg-rose-50 dark:hover:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-lg transition-colors p-1.5"
-                                  title="Absent"
-                                >
-                                  <X size={14} />
-                                </button>
-                                <button 
-                                  onClick={() => handleMarkAttendance(student.id, day, 'Cancelled')}
-                                  className="hover:bg-zinc-50 dark:hover:bg-zinc-600 text-zinc-600 dark:text-zinc-400 rounded-lg transition-colors p-1.5"
-                                  title="Cancelled"
-                                >
-                                  <Minus size={14} />
-                                </button>
-                              </div>
                             </div>
                           </div>
                         </td>
@@ -403,6 +345,192 @@ export function Attendance() {
           </table>
         </div>
       </div>
+
+      {/* Bulk Marking Modal */}
+      {isMarkingOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-zinc-800 rounded-2xl p-6 w-full max-w-2xl shadow-xl border border-zinc-100 dark:border-zinc-700 transition-all max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">Capture Attendance</h2>
+              <button onClick={() => setIsMarkingOpen(false)} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-lg text-zinc-500"><X size={20} /></button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Select Class</label>
+                <select
+                  value={markingClassId}
+                  onChange={(e) => {
+                    const cid = e.target.value === '' ? '' : Number(e.target.value);
+                    setMarkingClassId(cid);
+                    setMarkingRecords({});
+                  }}
+                  className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                >
+                  <option value="">Select a Class</option>
+                  {classes.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Date</label>
+                <input
+                  type="date"
+                  value={markingDate}
+                  onChange={(e) => setMarkingDate(e.target.value)}
+                  className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto min-h-0 border border-zinc-100 dark:border-zinc-700 rounded-xl mb-6">
+              <table className="w-full border-collapse">
+                <thead className="sticky top-0 bg-zinc-50 dark:bg-zinc-900 z-10">
+                  <tr className="border-b border-zinc-100 dark:border-zinc-700 text-left">
+                    <th className="p-3 text-sm font-medium text-zinc-600 dark:text-zinc-400">Student Name</th>
+                    <th className="p-3 text-sm font-medium text-zinc-600 dark:text-zinc-400 text-right">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-100 dark:divide-zinc-700">
+                  {studentsToMark.length === 0 ? (
+                    <tr>
+                      <td colSpan={2} className="p-8 text-center text-zinc-500">Pick a class to show students.</td>
+                    </tr>
+                  ) : (
+                    studentsToMark.map(student => (
+                      <tr key={student.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-700/30 transition-colors">
+                        <td className="p-3 text-sm font-medium text-zinc-900 dark:text-white">{student.name}</td>
+                        <td className="p-3">
+                          <div className="flex justify-end gap-2">
+                            {[
+                              { label: 'Present', id: 'Present', color: 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800' },
+                              { label: 'Absent', id: 'Absent', color: 'bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-400 dark:border-rose-800' },
+                              { label: 'Cancelled', id: 'Cancelled', color: 'bg-zinc-100 text-zinc-700 border-zinc-200 dark:bg-zinc-700 dark:text-zinc-400 dark:border-zinc-600' }
+                            ].map(btn => (
+                              <button
+                                key={btn.id}
+                                onClick={() => setMarkingRecords(prev => ({ ...prev, [student.id]: btn.id as any }))}
+                                className={clsx(
+                                  "px-3 py-1 text-xs rounded-lg border transition-all",
+                                  markingRecords[student.id] === btn.id 
+                                    ? btn.color 
+                                    : "bg-white dark:bg-zinc-800 text-zinc-500 border-zinc-100 dark:border-zinc-700"
+                                )}
+                              >
+                                {btn.label}
+                              </button>
+                            ))}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-zinc-100 dark:border-zinc-700">
+              <button 
+                onClick={() => setIsMarkingOpen(false)}
+                className="px-4 py-2 text-zinc-600 dark:text-zinc-400 font-medium"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleBulkSubmit}
+                disabled={submitting || studentsToMark.length === 0}
+                className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-sm transition-all font-bold disabled:opacity-50"
+              >
+                {submitting ? 'Saving...' : 'Submit Attendance'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Broadcast Modal */}
+      {showBroadcast && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-zinc-800 rounded-3xl p-8 w-full max-w-2xl shadow-2xl border border-zinc-100 dark:border-zinc-700 transition-all max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-zinc-900 dark:text-white flex items-center gap-3">
+                  <Send className="text-indigo-600" size={28} />
+                  Broadcast Center
+                </h2>
+                <p className="text-zinc-500 dark:text-zinc-400 mt-1">Send notifications for the captures recorded.</p>
+              </div>
+              <button onClick={() => setShowBroadcast(false)} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-xl text-zinc-500 transition-colors">
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-4 mb-8 pr-2 custom-scrollbar">
+              {pendingNotifications.map((notif, idx) => {
+                const enableWa = settings?.enableWhatsappNotifications !== false && String(settings?.enableWhatsappNotifications) !== 'false';
+                const enableMail = settings?.enableEmailNotifications === true || String(settings?.enableEmailNotifications) === 'true';
+
+                return (
+                  <div key={idx} className="bg-zinc-50 dark:bg-zinc-900/50 p-5 rounded-2xl border border-zinc-100 dark:border-zinc-800 group hover:border-indigo-200 dark:hover:border-indigo-900/50 transition-all shadow-sm">
+                    <div className="flex justify-between items-start gap-4 mb-3">
+                      <h3 className="font-bold text-zinc-900 dark:text-white text-lg">{notif.studentName}</h3>
+                      <div className="flex gap-2">
+                        {/* Manual WhatsApp Trigger */}
+                        <button
+                          onClick={() => {
+                            if (enableWa) {
+                              handleManualNotifications(notif, settings, { wa: window.open('about:blank', '_blank') });
+                            }
+                          }}
+                          className={clsx(
+                            "p-3 rounded-xl transition-all shadow-sm",
+                            enableWa ? "bg-emerald-100 text-emerald-600 hover:scale-105" : "bg-zinc-100 text-zinc-400 cursor-not-allowed"
+                          )}
+                          disabled={!enableWa}
+                          title="Send WhatsApp"
+                        >
+                          <MessageSquare size={20} />
+                        </button>
+                        {/* Manual Email Trigger */}
+                        <button
+                          onClick={() => {
+                            if (enableMail) {
+                              handleManualNotifications(notif, settings, { mail: window.open('about:blank', '_blank') });
+                            }
+                          }}
+                          className={clsx(
+                            "p-3 rounded-xl transition-all shadow-sm",
+                            enableMail ? "bg-indigo-100 text-indigo-600 hover:scale-105" : "bg-zinc-100 text-zinc-400 cursor-not-allowed"
+                          )}
+                          disabled={!enableMail}
+                          title="Send Email"
+                        >
+                          <Mail size={20} />
+                        </button>
+                      </div>
+                    </div>
+                    <p className="text-zinc-600 dark:text-zinc-400 text-sm italic leading-relaxed">"{notif.text}"</p>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="pt-6 border-t border-zinc-100 dark:border-zinc-700 flex justify-between items-center">
+              <span className="text-sm font-medium text-zinc-500 flex items-center gap-2">
+                <Check size={16} className="text-emerald-500" />
+                {pendingNotifications.length} notifications ready
+              </span>
+              <button 
+                onClick={() => setShowBroadcast(false)}
+                className="px-8 py-3 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-2xl font-bold shadow-lg hover:bg-zinc-800 dark:hover:bg-white transition-all transform hover:-translate-y-0.5 active:translate-y-0"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

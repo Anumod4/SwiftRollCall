@@ -620,6 +620,61 @@ app.get('/api/attendance', async (req, res) => {
   }
 });
 
+app.post('/api/attendance/bulk', async (req, res) => {
+  const { records, date } = req.body;
+  const notifications: any[] = [];
+  
+  try {
+    for (const record of records) {
+      const { studentId, status } = record;
+      
+      // Delete existing for the same day to avoid duplicates
+      await db.execute({
+        sql: 'DELETE FROM attendance WHERE studentId = ? AND date = ?',
+        args: [studentId, date]
+      });
+
+      // Insert new record
+      await db.execute({
+        sql: 'INSERT INTO attendance (studentId, date, status) VALUES (?, ?, ?)',
+        args: [studentId, date, status]
+      });
+
+      // Prepare notification data
+      const studentResult = await db.execute({
+        sql: 'SELECT s.*, c.name as className FROM students s LEFT JOIN classes c ON s.classId = c.id WHERE s.id = ?',
+        args: [studentId]
+      });
+      const student = studentResult.rows[0];
+
+      if (student) {
+        const displayDate = format(new Date(date), 'MMM d, yyyy');
+        const classPart = student.className ? ` (Class: ${student.className})` : '';
+        let text = '';
+        if (status === 'Present') text = `Hi, attendance for ${student.name}${classPart} on ${displayDate} has been marked as Present.`;
+        else if (status === 'Absent') text = `Hi, attendance for ${student.name}${classPart} on ${displayDate} has been marked as Absent.`;
+        else if (status === 'Cancelled') text = `Hi, the class for ${student.name}${classPart} on ${displayDate} has been cancelled.`;
+
+        if (text) {
+          notifications.push({ 
+            text, 
+            phone: student.contactInfo as string, 
+            email: student.email as string,
+            studentName: student.name
+          });
+          
+          // Also try to send automated if configured (Master toggles checked in sendNotification)
+          await sendNotification({ phone: student.contactInfo as string, email: student.email as string }, 'Attendance Update', text);
+        }
+      }
+    }
+    res.json({ success: true, notifications });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to record bulk attendance' });
+  }
+});
+
 app.post('/api/attendance', async (req, res) => {
   const { studentId, date, status, notes } = req.body;
   let notification: any = null;
