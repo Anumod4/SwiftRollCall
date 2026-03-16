@@ -1,4 +1,5 @@
 import express from 'express';
+import cors from 'cors';
 import { createServer as createViteServer } from 'vite';
 import { createClient } from '@libsql/client';
 import bcrypt from 'bcryptjs';
@@ -26,7 +27,15 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-change-in-production';
 
+app.use(cors());
 app.use(express.json());
+
+// Request Logger
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} | ${req.method} ${req.url}`);
+  if (req.method === 'POST') console.log('Body:', JSON.stringify(req.body));
+  next();
+});
 
 // Initialize Database
 const db = createClient({
@@ -212,6 +221,15 @@ async function setupDatabase() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
       config TEXT NOT NULL,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS parent_users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT UNIQUE,
+      phone TEXT UNIQUE,
+      password TEXT NOT NULL,
+      name TEXT,
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
     );
   `);
@@ -998,6 +1016,135 @@ app.post('/api/notifications/remind', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to send reminder' });
+  }
+});
+
+// --- Mobile App API Routes ---
+
+// Verify Students for Signup
+app.post('/api/mobile/auth/verify-students', async (req, res) => {
+  const { identifier } = req.body; // email or phone
+  if (!identifier) return res.status(400).json({ error: 'Identifier is required' });
+  const cleanId = String(identifier).trim().toLowerCase();
+  const phoneId = String(identifier).trim(); // Keep original for phone match just in case
+  
+  try {
+    const result = await db.execute({
+      sql: `
+        SELECT s.id, s.name, s.email, s.contactInfo, c.name as className 
+        FROM students s 
+        LEFT JOIN classes c ON s.classId = c.id 
+        WHERE LOWER(TRIM(s.email)) = ? OR TRIM(s.contactInfo) = ? OR TRIM(s.contactInfo) = ?
+      `,
+      args: [cleanId, cleanId, phoneId]
+    });
+    
+    res.json({ students: result.rows });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to verify students' });
+  }
+});
+
+// Parent Signup
+app.post('/api/mobile/auth/signup', async (req, res) => {
+  const { name, email, phone, password } = req.body;
+  try {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const result = await db.execute({
+      sql: 'INSERT INTO parent_users (name, email, phone, password) VALUES (?, ?, ?, ?)',
+      args: [name || null, email || null, phone || null, hashedPassword]
+    });
+    
+    const token = jwt.sign({ id: Number(result.lastInsertRowid), parentEmail: email, parentPhone: phone, role: 'parent' }, JWT_SECRET, { expiresIn: '30d' });
+    res.json({ token, user: { id: Number(result.lastInsertRowid), name, email, phone } });
+  } catch (error: any) {
+    if (error.message?.includes('UNIQUE constraint failed')) {
+      return res.status(400).json({ error: 'Account already exists for this email or phone' });
+    }
+    console.error(error);
+    res.status(500).json({ error: 'Failed to create parent account' });
+  }
+});
+
+// Parent Login
+app.post('/api/mobile/auth/login', async (req, res) => {
+  const { identifier, password } = req.body; // identifier can be email or phone
+  try {
+    const result = await db.execute({
+      sql: 'SELECT * FROM parent_users WHERE email = ? OR phone = ?',
+      args: [identifier, identifier]
+    });
+    
+    const user = result.rows[0];
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid login details' });
+    }
+
+    const validPassword = await bcrypt.compare(password, user.password as string);
+    if (!validPassword) {
+      return res.status(401).json({ error: 'Invalid login details' });
+    }
+
+    const token = jwt.sign({ id: user.id, parentEmail: user.email, parentPhone: user.phone, role: 'parent' }, JWT_SECRET, { expiresIn: '30d' });
+    res.json({ token, user: { id: user.id, name: user.name, email: user.email, phone: user.phone } });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to login' });
+  }
+});
+
+// Middleware for parent
+const authenticateParent = (req: any, res: any, next: any) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) return res.status(401).json({ error: 'Access denied' });
+
+  jwt.verify(token, JWT_SECRET, (err: any, user: any) => {
+    if (err) return res.status(403).json({ error: 'Invalid token' });
+    if (user.role !== 'parent') return res.status(403).json({ error: 'Not a parent account' });
+    req.user = user;
+    next();
+  });
+};
+
+// Parent Dashboard Data (Students, attendance, payments)
+app.get('/api/mobile/dashboard', authenticateParent, async (req: any, res: any) => {
+  try {
+    const { parentEmail, parentPhone } = req.user;
+    
+    const studentsResult = await db.execute({
+      sql: "SELECT s.*, c.name as className FROM students s LEFT JOIN classes c ON s.classId = c.id WHERE (s.email IS NOT NULL AND s.email != '' AND s.email = ?) OR (s.contactInfo IS NOT NULL AND s.contactInfo != '' AND s.contactInfo = ?)",
+      args: [parentEmail || '', parentPhone || ''] 
+    });
+    
+    const students = studentsResult.rows;
+    if (students.length === 0) {
+       return res.json({ students: [], attendance: [], payments: [] });
+    }
+
+    const studentIds = students.map((s: any) => s.id);
+    const inClause = studentIds.map(() => '?').join(',');
+
+    const attendanceResult = await db.execute({
+      sql: "SELECT * FROM attendance WHERE studentId IN (" + inClause + ") ORDER BY date DESC LIMIT 50",
+      args: studentIds
+    });
+
+    const paymentsResult = await db.execute({
+      sql: "SELECT * FROM payments WHERE studentId IN (" + inClause + ") ORDER BY date DESC LIMIT 50",
+      args: studentIds
+    });
+
+    res.json({
+      students,
+      attendance: attendanceResult.rows,
+      payments: paymentsResult.rows
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to load parent dashboard' });
   }
 });
 
