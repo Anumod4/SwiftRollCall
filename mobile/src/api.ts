@@ -2,8 +2,8 @@ import { storage } from './storage';
 import { Platform } from 'react-native';
 
 // Use actual local IP address when running on device/emulator, or production URL:
-// Replace this with your actual Render backend URL once deployed:
-const PRODUCTION_URL = 'https://swift-rollcall-api.onrender.com/api'; 
+// For Web in production, we serve from the same domain, so we can use relative paths
+const PRODUCTION_URL = Platform.OS === 'web' ? '/api' : 'https://swiftrollcall.onrender.com/api'; 
 
 const API_BASE_URL = __DEV__ 
   ? Platform.OS === 'android' ? 'http://10.0.2.2:3000/api' : 'http://localhost:3000/api'
