@@ -30,6 +30,10 @@ const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-change-in-product
 app.use(cors());
 app.use(express.json());
 
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // Request Logger
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} | ${req.method} ${req.url}`);

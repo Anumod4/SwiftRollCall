@@ -26,12 +26,26 @@ export const api = {
       headers,
     });
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'An unknown error occurred' }));
-      throw new Error(error.error || `Error ${response.status}`);
+    const contentType = response.headers.get('content-type');
+    const text = await response.text();
+    
+    if (__DEV__) {
+      console.log(`API Response: ${response.status}`, text);
     }
 
-    return response.json();
+    let data;
+    try {
+      data = text ? JSON.parse(text) : {};
+    } catch (e) {
+      console.error('Failed to parse JSON:', text);
+      throw new Error(`Invalid response from server: ${response.status}`);
+    }
+
+    if (!response.ok) {
+      throw new Error(data.error || `Error ${response.status}`);
+    }
+
+    return data;
   },
 
   async verifyStudents(identifier: string) {
