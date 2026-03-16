@@ -11,3 +11,14 @@ services:
         generateValue: true
       - key: PORT
         value: 3000
+
+  - type: static
+    name: swiftrollcall-parent
+    env: static
+    buildCommand: cd mobile && npm install && npm run build
+    publishDir: mobile/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
