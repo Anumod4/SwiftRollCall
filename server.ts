@@ -1159,14 +1159,6 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    // Serve Parent Portal
-    const parentDistPath = path.resolve(__dirname, 'mobile', 'dist');
-    app.use('/parent', express.static(parentDistPath));
-    app.get('/parent*', (req, res) => {
-      res.sendFile(path.join(parentDistPath, 'index.html'));
-    });
-
-    // Serve Main App
     app.use(express.static('dist'));
     app.get('*', (req, res) => {
       if (req.path.startsWith('/api')) return res.status(404).json({ error: 'API route not found' });
