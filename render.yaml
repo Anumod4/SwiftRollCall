@@ -16,9 +16,8 @@ services:
   - type: static
     name: swiftrollcall-parent
     env: static
-    root: mobile
-    buildCommand: npm install && npm run build
-    publishDir: dist
+    buildCommand: cd mobile && npm install && npx expo export --platform web
+    publishDir: mobile/dist
     routes:
       - type: rewrite
         source: /*
