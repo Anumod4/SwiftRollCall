@@ -2,8 +2,8 @@ services:
   - type: web
     name: swiftrollcall
     env: node
-    # Build everything in one go
-    buildCommand: npm install && npm run build && cd mobile && npm install && npm run build
+    # Build only the main backend and frontend
+    buildCommand: npm install && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
